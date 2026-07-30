@@ -61,20 +61,26 @@ _whisper_model = None
 def get_whisper_model():
     global _whisper_model
     if _whisper_model is None:
-        print("[Whisper] Loading model 'large-v3' (NVIDIA GPU CUDA int8 mode)...")
+        model_name = os.environ.get("WHISPER_MODEL", None)
         try:
-            # int8 CUDA mode fits GTX 1050 Pascal architecture perfectly!
-            _whisper_model = WhisperModel("large-v3", device="cuda", compute_type="int8")
-            print("[Whisper] SUCCESSFULLY LOADED 'large-v3' ON NVIDIA GPU (CUDA INT8)!")
+            # Try GPU CUDA first (for local machine with GPU)
+            target_gpu_model = model_name or "large-v3"
+            print(f"[Whisper] Loading model '{target_gpu_model}' (NVIDIA GPU CUDA int8 mode)...")
+            _whisper_model = WhisperModel(target_gpu_model, device="cuda", compute_type="int8")
+            print(f"[Whisper] SUCCESSFULLY LOADED '{target_gpu_model}' ON NVIDIA GPU!")
         except Exception as e:
             try:
-                print(f"[Whisper] GPU CUDA large-v3 notice ({e}). Trying GPU 'medium'...")
-                _whisper_model = WhisperModel("medium", device="cuda", compute_type="int8")
-                print("[Whisper] Successfully loaded 'medium' on NVIDIA GPU (CUDA)!")
+                target_gpu_model = model_name or "medium"
+                print(f"[Whisper] GPU CUDA notice ({e}). Trying GPU '{target_gpu_model}'...")
+                _whisper_model = WhisperModel(target_gpu_model, device="cuda", compute_type="int8")
+                print(f"[Whisper] Successfully loaded '{target_gpu_model}' on NVIDIA GPU!")
             except Exception as e2:
-                print(f"[Whisper] GPU CUDA notice ({e2}). Running on CPU 'medium' (int8, 4 threads)...")
-                _whisper_model = WhisperModel("medium", device="cpu", compute_type="int8", cpu_threads=4)
-                print("[Whisper] Model 'medium' loaded on CPU.")
+                # Fallback to CPU mode (Railway cloud limit 1GB RAM)
+                # Use 'small' model on CPU (~400MB RAM) to avoid Out Of Memory
+                target_cpu_model = model_name or "small"
+                print(f"[Whisper] GPU notice ({e2}). Running on CPU '{target_cpu_model}' (int8, 2 threads)...")
+                _whisper_model = WhisperModel(target_cpu_model, device="cpu", compute_type="int8", cpu_threads=2)
+                print(f"[Whisper] Model '{target_cpu_model}' loaded on CPU (RAM optimized for Cloud).")
     return _whisper_model
 
 
