@@ -1,0 +1,38 @@
+# Environment & Secrets
+.env
+cookies.txt
+
+# Database
+*.db
+*.db-journal
+
+# Storage (temp videos & exports)
+storage/
+
+# Binaries & Media Outputs
+*.exe
+*.mp4
+*.jpg
+*.png
+assets/*.onnx
+models_data/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Auto-Clipper</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        zinc: {
+                            900: '#18181b',
+                            950: '#09090b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #09090b;
+            color: #f4f4f5;
+        }
+        .terminal-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+        .terminal-scroll::-webkit-scrollbar-track {
+            background: #18181b; 
+        }
+        .terminal-scroll::-webkit-scrollbar-thumb {
+            background: #27272a; 
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col selection:bg-zinc-800 selection:text-zinc-100">
+    
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-emerald-400 text-zinc-950 px-4 py-2.5 rounded-lg shadow-xl font-semibold text-xs hidden z-50 transition-all duration-300"></div>
+
+    <!-- Header -->
+    <header class="border-b border-zinc-800 bg-zinc-950 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
+        <div class="flex items-center gap-3">
+            <div class="h-6 w-6 rounded bg-zinc-100 flex items-center justify-center text-zinc-950 font-bold text-xs">AC</div>
+            <h1 class="font-medium text-sm text-zinc-100 tracking-tight">AI Auto-Clipper</h1>
+        </div>
+        <div class="flex items-center gap-4 text-xs font-mono text-zinc-400">
+            <div class="flex items-center gap-1.5">
+                <span class="relative flex h-2 w-2">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                DB Connected
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="relative flex h-2 w-2">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                Gemini Auto-Fallback
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-[1600px] w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- Left Column: Input & Terminal -->
+        <div class="lg:col-span-4 flex flex-col gap-6">
+            <!-- Form Card -->
+            <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-sm font-medium text-zinc-100">New Extraction Job</h2>
+                    <!-- Input Mode Switcher -->
+                    <div class="flex gap-1 bg-zinc-950 p-1 rounded-md border border-zinc-800">
+                        <button type="button" id="tabUrl" onclick="switchInputMode('url')" class="px-2.5 py-1 text-xs font-medium rounded bg-zinc-800 text-zinc-100 transition-colors">🔗 YouTube URL</button>
+                        <button type="button" id="tabUpload" onclick="switchInputMode('upload')" class="px-2.5 py-1 text-xs font-medium rounded text-zinc-400 hover:text-zinc-200 transition-colors">📁 Drag & Drop Video</button>
+                    </div>
+                </div>
+
+                <form id="clipForm" class="flex flex-col gap-4">
+                    <!-- URL Input -->
+                    <div id="urlInputContainer">
+                        <label for="url" class="sr-only">YouTube URL</label>
+                        <input type="url" id="url" name="url" placeholder="https://youtube.com/watch?v=..." 
+                            class="w-full bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 transition-colors">
+                    </div>
+
+                    <!-- File Drag & Drop Upload Zone -->
+                    <div id="uploadInputContainer" class="hidden">
+                        <div id="dropZone" onclick="document.getElementById('videoFile').click()" class="border-2 border-dashed border-zinc-800 hover:border-indigo-500 rounded-lg p-6 text-center cursor-pointer transition-colors bg-zinc-950/50">
+                            <input type="file" id="videoFile" accept="video/mp4,video/x-m4v,video/*" class="hidden" onchange="handleFileSelected(this.files)">
+                            <div class="flex flex-col items-center gap-2">
+                                <svg class="w-8 h-8 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 0115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                                <div class="text-xs text-zinc-300 font-medium" id="dropFileName">Drag & Drop MP4 Video here or <span class="text-indigo-400 underline">Browse</span></div>
+                                <div class="text-[10px] text-zinc-500">Supports MP4, MOV, MKV up to 2GB</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Settings -->
+                    <details class="group border border-zinc-800 rounded-md bg-zinc-950/50">
+                        <summary class="cursor-pointer px-3 py-2 text-xs font-medium text-zinc-400 hover:text-zinc-200 list-none flex justify-between items-center transition-colors outline-none">
+                            <span>⚙️ Advanced Settings</span>
+                            <span class="transform group-open:rotate-180 transition-transform duration-200">▼</span>
+                        </summary>
+                        <div class="px-3 pb-3 pt-2 border-t border-zinc-800 flex flex-col gap-3">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Aspect Ratio</label>
+                                    <select id="aspectRatio" class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
+                                        <option value="9:16">9:16 (TikTok/Reels)</option>
+                                        <option value="4:5">4:5 (Instagram)</option>
+                                        <option value="1:1">1:1 (Square)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Layout Style</label>
+                                    <select id="cropStyle" class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
+                                        <option value="center_crop">Auto Center Crop</option>
+                                        <option value="blur_pad">Blur Background</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Subtitle Color</label>
+                                    <select id="subtitleColor" class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
+                                        <option value="&H00FFFF">Yellow (Opus Style)</option>
+                                        <option value="&HFFFFFF">White (Classic)</option>
+                                        <option value="&H00FF00">Green (Gaming)</option>
+                                        <option value="&H0000FF">Red (Aggressive)</option>
+                                        <option value="&HFF0000">Blue (Calm)</option>
+                                        <option value="&HFF00FF">Purple (Aesthetic)</option>
+                                        <option value="&H00A5FF">Orange (Bold)</option>
+                                        <option value="&HFFFF00">Cyan (Tech)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Subtitle Size</label>
+                                    <select id="subtitleSize" class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
+                                        <option value="70">Small</option>
+                                        <option value="90" selected>Medium</option>
+                                        <option value="110">Large</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 gap-3 mt-1">
+                                <div>
+                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">AI Director Prompt (Optional)</label>
+                                    <input type="text" id="customPrompt" placeholder="e.g. Focus on funny moments, find jokes..." class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600 placeholder-zinc-700">
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-3 mt-1">
+                                <div>
+                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Clips to Extract</label>
+                                    <select id="clipCount" class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
+                                        <option value="1">1 Clip (Faster)</option>
+                                        <option value="3" selected>3 Clips (Balanced)</option>
+                                        <option value="5">5 Clips (Deep Search)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Podcast Layout Mode</label>
+                                    <select id="layoutMode" class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
+                                        <option value="auto" selected>🤖 Auto-Detect (Smart Podcast)</option>
+                                        <option value="single">👤 Single Speaker (No Split)</option>
+                                        <option value="split">👥 Force Top/Bottom Split</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col gap-2 pt-2">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" id="autoReframe" checked class="rounded bg-zinc-900 border-zinc-800 text-zinc-100 focus:ring-0 focus:ring-offset-0">
+                                    <span class="text-xs text-emerald-400 font-semibold">👤 Smart Face Tracking & Speaker Reframe (Visual AI)</span>
+                                </label>
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" id="wordKaraoke" checked class="rounded bg-zinc-900 border-zinc-800 text-zinc-100 focus:ring-0 focus:ring-offset-0">
+                                        <span class="text-xs text-zinc-400 font-semibold text-emerald-400">Word Karaoke (Alex Hormozi)</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" id="bgmDucking" checked class="rounded bg-zinc-900 border-zinc-800 text-zinc-100 focus:ring-0 focus:ring-offset-0">
+                                        <span class="text-xs text-zinc-400 font-semibold text-indigo-400">EBU R128 Audio Normalization</span>
+                                    </label>
+                                </div>
+                                 <div class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+                                     <div>
+                                         <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Custom Gemini API Key (Optional)</label>
+                                         <input type="password" id="geminiApiKey" value="" placeholder="Kosongkan untuk pakai System Default Key..." class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600 placeholder-zinc-700 font-mono">
+                                     </div>
+                                     <div>
+                                         <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Custom Webhook / Telegram Bot (Optional)</label>
+                                         <input type="text" id="webhookUrl" value="" placeholder="Kosongkan untuk kirim ke Telegram Bot Default Anda..." class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600 placeholder-zinc-700 font-mono">
+                                     </div>
+                                 </div>
+                            </div>
+                        </details>
+                    
+                    <button type="submit" id="submitBtn" class="w-full bg-zinc-100 hover:bg-white text-zinc-950 font-medium py-2 px-4 rounded-md text-sm transition-colors flex items-center justify-center gap-2">
+                        <span>Extract Viral Clip</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Live Terminal Output Card -->
+            <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 flex flex-col h-[380px]">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <div class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                        <h2 class="text-xs font-mono uppercase tracking-wider text-zinc-400">Pipeline Terminal</h2>
+                    </div>
+                    <span id="statusBadge" class="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">IDLE</span>
+                </div>
+                
+                <!-- Progress Bar -->
+                <div class="w-full bg-zinc-950 h-1.5 rounded-full overflow-hidden mb-3 border border-zinc-800">
+                    <div id="progressBar" class="bg-zinc-100 h-full w-0 transition-all duration-300"></div>
+                </div>
+
+                <!-- Terminal Console -->
+                <div id="terminal" class="flex-1 bg-zinc-950 border border-zinc-800 rounded-md p-3 font-mono text-xs text-zinc-400 overflow-y-auto terminal-scroll flex flex-col gap-1">
+                    <div class="text-zinc-600">// Waiting for job submission...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Extracted Clips Preview -->
+        <div id="clipsContainer" class="lg:col-span-8 flex flex-col gap-6">
+            <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 flex items-center justify-center h-[500px] text-zinc-500 text-sm font-mono text-center">
+                Submit a video to extract viral clips.
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let pollInterval = null;
+        let currentJobId = null;
+        let currentClipsData = [];
+        let currentInputMode = 'url';
+        let selectedLocalFile = null;
+
+        const form = document.getElementById('clipForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const terminal = document.getElementById('terminal');
+        const progressBar = document.getElementById('progressBar');
+        const statusBadge = document.getElementById('statusBadge');
+
+        function logToTerminal(message, type = 'info') {
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' });
+            let color = 'text-zinc-400';
+            if (type === 'error') color = 'text-rose-500';
+            if (type === 'success') color = 'text-emerald-500';
+            if (type === 'warn') color = 'text-amber-500';
+
+            const line = document.createElement('div');
+            line.innerHTML = `<span class="text-zinc-600">[${time}]</span> <span class="${color}">${message}</span>`;
+            terminal.appendChild(line);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        function updateUI(job) {
+            statusBadge.textContent = job.status;
+            
+            statusBadge.className = 'text-[10px] font-mono px-2 py-0.5 rounded-full uppercase tracking-wider ' + 
+                (job.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-500' :
+                 job.status === 'FAILED' ? 'bg-rose-500/10 text-rose-500' :
+                 job.status === 'QUEUED' ? 'bg-zinc-800 text-zinc-400' :
+                 'bg-amber-500/10 text-amber-500');
+
+            progressBar.style.width = `${job.progress_percentage}%`;
+            if (job.status === 'FAILED') {
+                progressBar.classList.add('bg-rose-500');
+                progressBar.classList.remove('bg-zinc-100', 'shadow-[0_0_10px_rgba(255,255,255,0.5)]');
+            } else {
+                progressBar.classList.remove('bg-rose-500');
+            }
+
+            const progressText = document.getElementById('progressText');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            
+            const isProcessing = ['DOWNLOADING', 'ANALYZING', 'EDITING'].includes(job.status);
+            
+            if (progressText) {
+                if (isProcessing) {
+                    progressText.classList.remove('hidden');
+                    progressText.textContent = `${job.progress_percentage}%`;
+                } else {
+                    progressText.classList.add('hidden');
+                }
+            }
+            if (loadingSpinner) {
+                if (isProcessing) {
+                    loadingSpinner.classList.remove('hidden');
+                } else {
+                    loadingSpinner.classList.add('hidden');
+                }
+            }
+            if (isProcessing) {
+                progressBar.classList.add('shadow-[0_0_10px_rgba(255,255,255,0.5)]');
+            } else {
+                progressBar.classList.remove('shadow-[0_0_10px_rgba(255,255,255,0.5)]');
+            }
+
+            const lastLog = terminal.lastElementChild?.textContent || '';
+            if (job.current_step_message && !lastLog.includes(job.current_step_message)) {
+                logToTerminal(job.current_step_message, job.status === 'FAILED' ? 'error' : 'info');
+            }
+
+            if (job.clips_json) {
+                try {
+                    const clips = JSON.parse(job.clips_json);
+                    const outputs = job.output_video_path ? job.output_video_path.split(',') : [];
+                    
+                    let html = '';
+                    
+                    if (job.status === 'COMPLETED') {
+                        html += `
+                        <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 mb-6">
+                            <h3 class="text-sm font-medium text-zinc-100 mb-3">🎨 Edit Subtitle Appearance (No Re-download required)</h3>
+                            <div class="flex flex-wrap gap-3 items-end">
+                                <div>
+                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Color</label>
+                                    <select id="re_subtitleColor" class="bg-zinc-950 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none">
+                                        <option value="&H00FFFF" ${job.subtitle_color === '&H00FFFF' ? 'selected' : ''}>Yellow</option>
+                                        <option value="&HFFFFFF" ${job.subtitle_color === '&HFFFFFF' ? 'selected' : ''}>White</option>
+                                        <option value="&H00FF00" ${job.subtitle_color === '&H00FF00' ? 'selected' : ''}>Green</option>
+                                        <option value="&H0000FF" ${job.subtitle_color === '&H0000FF' ? 'selected' : ''}>Red</option>
+                                        <option value="&HFF0000" ${job.subtitle_color === '&HFF0000' ? 'selected' : ''}>Blue</option>
+                                        <option value="&HFF00FF" ${job.subtitle_color === '&HFF00FF' ? 'selected' : ''}>Purple</option>
+                                        <option value="&H00A5FF" ${job.subtitle_color === '&H00A5FF' ? 'selected' : ''}>Orange</option>
+                                        <option value="&HFFFF00" ${job.subtitle_color === '&HFFFF00' ? 'selected' : ''}>Cyan</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Size</label>
+                                    <select id="re_subtitleSize" class="bg-zinc-950 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none">
+                                        <option value="9">Small</option>
+                                        <option value="11" selected>Medium</option>
+                                        <option value="14">Large</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Opacity (0-100)</label>
+                                    <input type="number" id="re_subtitleOpacity" value="100" min="0" max="100" class="bg-zinc-950 w-20 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none">
+                                </div>
+                                <div class="flex items-center gap-2 mb-2 mr-2">
+                                    <input type="checkbox" id="re_wordKaraoke" checked class="rounded bg-zinc-950 border-zinc-800 text-emerald-500 focus:ring-emerald-500">
+                                    <span class="text-[10px] text-zinc-400 uppercase tracking-wider">Word-by-Word Karaoke</span>
+                                </div>
+                                <button onclick="triggerRerender()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium py-1.5 px-4 rounded transition-colors">
+                                    Apply & Re-Render
+                                </button>
+                            </div>
+                        </div>
+                        `;
+                    }
+                    currentClipsData = clips;
+                    clips.forEach((clip, index) => {
+                        const videoSrc = outputs[index] || '';
+                        // Always use the raw video for the web player so we don't double-render subtitles
+                        const previewVideoSrc = videoSrc.replace('_rerender', '');
+                        
+                        const tags = (clip.hashtags || []).map(t => `<span class="text-[10px] font-mono text-zinc-400 bg-zinc-800 px-2 py-1 rounded">#${t.trim()}</span>`).join('');
+                        
+                        html += `
+                        <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 flex flex-col md:flex-row gap-6 mb-6 shadow-xl">
+                            <!-- Left: Video Player Preview -->
+                            <div class="flex-shrink-0 w-full md:w-[260px] aspect-[9/16] bg-zinc-950 border border-zinc-800 rounded-lg overflow-hidden relative flex items-center justify-center group shadow-2xl">
+                                ${previewVideoSrc ? `
+                                <video id="video_${index}" src="${previewVideoSrc}?t=${Date.now()}" class="w-full h-full object-cover" controls playsinline></video>
+                                <div id="subtitleOverlay_${index}" class="absolute bottom-[15%] left-0 w-full text-center px-4 pointer-events-none transition-all duration-100" style="--sub-color: #FFFF00; text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 4px 4px rgba(0,0,0,0.5); line-height: 1.3; font-size: 1.25rem;"></div>
+                                ` : `<div class="text-zinc-600 text-xs font-mono text-center px-4"><span class="animate-pulse">Processing...</span></div>`}
+                            </div>
+                            
+                            <!-- Right: Detailed Clip Info & Control Actions -->
+                            <div class="flex-1 flex flex-col gap-4 min-w-0">
+                                <!-- Top Bar: Title & Viral Score -->
+                                <div class="flex justify-between items-center bg-zinc-950/80 border border-zinc-800/80 p-3.5 rounded-lg">
+                                    <div>
+                                        <div class="flex items-center gap-2">
+                                            <h3 class="text-base font-bold text-zinc-100">Clip ${index + 1}</h3>
+                                            <span class="font-mono text-xs text-zinc-400 bg-zinc-900 border border-zinc-800 px-2.5 py-0.5 rounded">⏱️ ${clip.start_time} - ${clip.end_time}</span>
+                                        </div>
+                                        <p class="text-xs text-zinc-500 mt-0.5">Extracted by Gemini Dynamic Engine</p>
+                                    </div>
+                                    <div class="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-3.5 py-1.5 rounded-lg font-mono text-xs text-center flex items-center gap-2">
+                                        <span class="text-[11px] uppercase tracking-wider text-zinc-400 font-sans">Viral Score</span>
+                                        <span class="text-xl font-extrabold text-emerald-400">${clip.viral_score}</span><span class="text-zinc-500 text-xs">/100</span>
+                                    </div>
+                                </div>
+
+                                ${clip.hook_title ? `<div class="bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-semibold px-3.5 py-2 rounded-lg flex items-center gap-2"><span>🔥</span> <span>Hook Title: <strong class="text-amber-200">${clip.hook_title}</strong></span></div>` : ''}
+                                
+                                <div>
+                                    <div class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1.5 font-mono">AI Context & Summary</div>
+                                    <div class="text-xs text-zinc-300 bg-zinc-950/60 border border-zinc-800/80 rounded-lg p-3 leading-relaxed">${clip.caption}</div>
+                                </div>
+                                
+                                <!-- Multi-Platform Caption Copy Bar -->
+                                <div>
+                                    <div class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1.5 font-mono">1-Click Platform Copy</div>
+                                    <div class="grid grid-cols-3 gap-2.5">
+                                        <button onclick="copyCaption('tiktok', ${index})" class="bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 text-xs py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium shadow-sm">
+                                            🎵 TikTok
+                                        </button>
+                                        <button onclick="copyCaption('reels', ${index})" class="bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 text-xs py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium shadow-sm">
+                                            📸 Reels
+                                        </button>
+                                        <button onclick="copyCaption('shorts', ${index})" class="bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 text-xs py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium shadow-sm">
+                                            🔴 Shorts
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1.5 font-mono">Hashtags</div>
+                                    <div class="flex flex-wrap gap-1.5">${tags}</div>
+                                </div>
+
+                                ${previewVideoSrc ? `
+                                <div class="mt-auto pt-3 border-t border-zinc-800/60 flex flex-col xl:flex-row gap-3 items-center">
+                                    <div class="flex gap-2 w-full xl:w-auto flex-1">
+                                        <a href="${videoSrc}" download class="flex-1 bg-zinc-100 hover:bg-white text-zinc-950 font-bold text-xs py-2.5 px-3 rounded-lg text-center transition-colors flex items-center justify-center gap-1.5 shadow">
+                                            📥 Download MP4
+                                        </a>
+                                        <a href="${videoSrc.replace('.mp4', '_cover.jpg')}" download class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold text-xs py-2.5 px-3 rounded-lg text-center transition-colors flex items-center justify-center gap-1.5 border border-zinc-700">
+                                            🖼️ Cover (.jpg)
+                                        </a>
+                                    </div>
+                                    <div class="flex items-center gap-2 w-full xl:w-auto">
+                                        <select id="postMode_${index}" class="bg-zinc-950 border border-zinc-800 text-zinc-200 text-xs rounded-lg py-2.5 px-3 focus:outline-none focus:border-zinc-600">
+                                            <option value="inbox">📥 Mode Draft Inbox (Aman)</option>
+                                            <option value="direct">⚡ Mode Direct Post (Langsung Live)</option>
+                                            <option value="schedule">⏰ Mode Auto-Jadwal (+3 Jam)</option>
+                                        </select>
+                                        <button onclick="publishTikTokWithMode('${videoSrc}', ${index})" class="bg-[#FE2C55] hover:bg-[#E6284C] text-white font-bold text-xs py-2.5 px-4 rounded-lg transition-colors whitespace-nowrap flex items-center gap-1.5 shadow-lg shadow-rose-900/20">
+                                            🚀 Post to TikTok
+                                        </button>
+                                    </div>
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                        `;
+                    });
+                    
+                    document.getElementById('clipsContainer').innerHTML = html;
+                    
+                    // Attach subtitle rendering logically without string escaping issues
+                    setTimeout(() => {
+                        clips.forEach((clip, index) => {
+                            const video = document.getElementById(`video_${index}`);
+                            if (video && clip.srt_subtitles) {
+                                initSubtitlesDirectly(video, clip.srt_subtitles, index);
+                            }
+                        });
+                    }, 100);
+                    
+                    // Attach event listeners for real-time style preview
+                    if (job.status === 'COMPLETED') {
+                        ['re_subtitleColor', 're_subtitleSize', 're_subtitleOpacity', 're_wordKaraoke'].forEach(id => {
+                            document.getElementById(id).addEventListener('input', updateLivePreviewStyles);
+                        });
+                        updateLivePreviewStyles();
+                    }
+                } catch(e) {
+                    console.error("Failed to parse clips JSON", e);
+                }
+            }
+        }
+
+        async function publishTikTokWithMode(videoPath, index) {
+            const modeSelect = document.getElementById(`postMode_${index}`);
+            const mode = modeSelect ? modeSelect.value : 'inbox';
+            
+            const clip = (typeof currentClipsData !== 'undefined' && currentClipsData && currentClipsData[index]) ? currentClipsData[index] : {};
+            const captionText = clip.tiktok_caption || clip.caption || clip.hook_title || "";
+
+            let modeLabel = '📥 Draft Inbox';
+            if (mode === 'direct') modeLabel = '⚡ Direct Post (Live)';
+            if (mode === 'schedule') modeLabel = '⏰ Auto-Schedule (+3 Jam)';
+            
+            alert(`🚀 Mengirim video & caption ke TikTok [${modeLabel}]...`);
+            
+            try {
+                const res = await fetch('/api/v1/tiktok/publish', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        video_path: videoPath,
+                        access_token: "act.qoc3JAzMofeJR16RpGvdwIUSUFfRVdPzBnvE3Cpr6n99YXaqhTshtwXRc1aC!5175.s1",
+                        title: captionText,
+                        privacy_level: mode === 'direct' ? 'PUBLIC_TO_EVERYONE' : 'SELF_ONLY',
+                        post_mode: mode
+                    })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    if (mode === 'schedule') {
+                        alert(`🎉 SKEDULER AKTIF! Klip #${index + 1} dijadwalkan terbit dalam 3 jam lagi! Video + Caption diproses ke TikTok.`);
+                    } else if (mode === 'direct') {
+                        alert(`🎉 SUKSES POSTING LANGSUNG! Video + Caption dikirim ke TikTok untuk terbit di Feed!`);
+                    } else {
+                        alert(`🎉 SUKSES! Video & Caption otomatis dikirim ke Draft TikTok Anda!\n\n💡 Tip: Anda juga bisa menekan tombol "🎵 TikTok" di bagian 1-Click Copy jika ingin menyalin caption secara manual.`);
+                    }
+                } else {
+                    const errMsg = (data.detail && data.detail.trim()) ? data.detail : (data.message || JSON.stringify(data));
+                    alert('❌ TikTok Post Failed:\n' + errMsg);
+                }
+            } catch(e) {
+                alert('❌ Error sending video to TikTok: ' + e.message);
+            }
+        }
+
+        function copyCaption(platform, index) {
+            const clip = (typeof currentClipsData !== 'undefined' && currentClipsData && currentClipsData[index]) ? currentClipsData[index] : {};
+            let text = "";
+            if (platform === 'tiktok') text = clip.tiktok_caption || clip.caption || clip.hook_title || "";
+            else if (platform === 'reels') text = clip.reels_caption || clip.caption || clip.hook_title || "";
+            else text = clip.shorts_caption || clip.caption || clip.hook_title || "";
+            
+            if (!text) {
+                showToast("Tidak ada teks caption untuk disalin! ⚠️");
+                return;
+            }
+            navigator.clipboard.writeText(text).then(() => {
+                showToast(`🎉 Caption ${platform.toUpperCase()} berhasil disalin ke Clipboard!`);
+            }).catch(err => {
+                showToast(`Gagal menyalin: ${err}`);
+            });
+        }
+
+        // Subtitle rendering logic
+        const parsedSRTCache = {};
+        function parseSRTTime(timeStr) {
+            const [hms, ms] = timeStr.split(',');
+            const [h, m, s] = hms.split(':').map(Number);
+            return (h * 3600 + m * 60 + s) + (Number(ms) / 1000);
+        }
+
+        function initSubtitlesDirectly(video, srtData, index) {
+            if (parsedSRTCache[index]) return; // Already initialized
+            
+            // Normalize line endings
+            srtData = srtData.replace(/\r\n/g, '\n');
+            const lines = srtData.split('\n');
+            const subs = [];
+            
+            for (let line of lines) {
+                if (line.startsWith('Dialogue: ')) {
+                    const parts = line.substring(10).split(',');
+                    if (parts.length >= 5) {
+                        const startStr = parts[1];
+                        const endStr = parts[2];
+                        const textWithTags = parts.slice(4).join(',');
+                        // Strip ASS tags like {\c&H00FFFF&} for the plain text preview
+                        const text = textWithTags.replace(/\{.*?\}/g, '').trim();
+                        
+                        const parseTime = (t) => {
+                            const [hms, cs] = t.split('.');
+                            const [h, m, s] = hms.split(':').map(Number);
+                            return (h * 3600 + m * 60 + s) + (Number(cs || 0) / 100);
+                        };
+                        
+                        try {
+                            subs.push({
+                                start: parseTime(startStr),
+                                end: parseTime(endStr),
+                                text: text
+                            });
+                        } catch(e) {}
+                    }
+                }
+            }
+            parsedSRTCache[index] = subs;
+            
+            // HTML overlay timeupdate disabled because subtitles are burned into the video by FFmpeg
+            video.addEventListener('timeupdate', () => {
+                const overlay = document.getElementById(`subtitleOverlay_${index}`);
+                if (overlay) {
+                    overlay.innerHTML = '';
+                }
+            });
+        }
+        
+        function updateLivePreviewStyles() {
+            const color = document.getElementById('re_subtitleColor').value;
+            const size = parseInt(document.getElementById('re_subtitleSize').value);
+            const opacity = parseInt(document.getElementById('re_subtitleOpacity').value);
+            
+            // Map hex &HBBGGRR to standard CSS hex
+            let cssColor = "#FFFF00";
+            if (color === "&H00FFFF") cssColor = "#FFFF00"; // Yellow
+            if (color === "&HFFFFFF") cssColor = "#FFFFFF"; // White
+            if (color === "&H00FF00") cssColor = "#00FF00"; // Green
+            if (color === "&H0000FF") cssColor = "#FF0000"; // Red
+            if (color === "&HFF0000") cssColor = "#0000FF"; // Blue
+            if (color === "&HFF00FF") cssColor = "#FF00FF"; // Purple
+            if (color === "&H00A5FF") cssColor = "#FFA500"; // Orange
+            if (color === "&HFFFF00") cssColor = "#00FFFF"; // Cyan
+            
+            // Map sizes
+            let cssSize = "1.2rem";
+            if (size === 9) cssSize = "0.9rem";
+            if (size === 14) cssSize = "1.5rem";
+            
+            document.querySelectorAll('[id^="subtitleOverlay_"]').forEach(el => {
+                el.style.setProperty('--sub-color', cssColor);
+                el.style.fontSize = cssSize;
+                el.style.fontFamily = "'Segoe UI Black', sans-serif";
+                el.style.opacity = (opacity / 100).toString();
+            });
+        }
+
+        async function pollJobStatus() {
+            if (!currentJobId) return;
+
+            try {
+                const res = await fetch(`/api/v1/clips/${currentJobId}`);
+                if (!res.ok) throw new Error('Failed to fetch status');
+                
+                const job = await res.json();
+                updateUI(job);
+
+                if (job.status === 'COMPLETED' || job.status === 'FAILED') {
+                    clearInterval(pollInterval);
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<span>Extract Viral Clip</span>';
+                    
+                    if (job.status === 'FAILED' && job.error_log) {
+                        logToTerminal(job.error_log, 'error');
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+                logToTerminal(`Polling error: ${err.message}`, 'error');
+            }
+        }
+
+        async function triggerRerender() {
+            if (!currentJobId) return;
+            
+            const color = document.getElementById('re_subtitleColor').value;
+            const size = parseInt(document.getElementById('re_subtitleSize').value);
+            const opacity = parseInt(document.getElementById('re_subtitleOpacity').value);
+            const karaoke = document.getElementById('re_wordKaraoke').checked;
+            
+            logToTerminal(`Triggering Re-Render with new settings...`);
+            
+            try {
+                const res = await fetch(`/api/v1/clips/${currentJobId}/rerender`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        subtitle_color: color,
+                        subtitle_size: size,
+                        subtitle_opacity: opacity,
+                        word_karaoke: karaoke
+                    })
+                });
+                
+                if (!res.ok) throw new Error('Failed to trigger re-render');
+                
+                logToTerminal(`Re-render started!`, 'success');
+                if (pollInterval) clearInterval(pollInterval);
+                pollInterval = setInterval(pollJobStatus, 5000);
+                pollJobStatus();
+                
+            } catch(e) {
+                logToTerminal(`Re-render Error: ${e.message}`, 'error');
+            }
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (currentInputMode === 'upload' && !selectedLocalFile) {
+                showToast("Please drag & drop or select an MP4 video file first! ⚠️");
+                return;
+            }
+
+            if (currentInputMode === 'url') {
+                const url = document.getElementById('url').value;
+                if (!url) {
+                    showToast("Please enter a valid YouTube URL! ⚠️");
+                    return;
+                }
+            }
+
+            terminal.innerHTML = '';
+            progressBar.style.width = '0%';
+            progressBar.classList.remove('bg-rose-500');
+            document.getElementById('clipsContainer').innerHTML = `
+            <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 flex items-center justify-center h-[500px] text-zinc-500 text-sm font-mono text-center">
+                <span class="animate-pulse">Analyzing video...</span>
+            </div>
+            `;
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<span class="animate-spin h-4 w-4 border-2 border-zinc-950 border-t-transparent rounded-full"></span> <span>Processing...</span>`;
+
+            try {
+                let res;
+                if (currentInputMode === 'upload') {
+                    logToTerminal(`Uploading local video file: ${selectedLocalFile.name}...`);
+                    const formData = new FormData();
+                    formData.append('file', selectedLocalFile);
+                    formData.append('aspect_ratio', document.getElementById('aspectRatio').value);
+                    formData.append('crop_style', document.getElementById('cropStyle').value);
+                    formData.append('subtitle_color', document.getElementById('subtitleColor').value);
+                    formData.append('subtitle_size', parseInt(document.getElementById('subtitleSize').value));
+                    formData.append('custom_prompt', document.getElementById('customPrompt').value);
+                    formData.append('clip_count', parseInt(document.getElementById('clipCount').value));
+                    formData.append('auto_reframe', document.getElementById('autoReframe').checked);
+                    formData.append('word_karaoke', document.getElementById('wordKaraoke').checked);
+                    formData.append('bgm_ducking', document.getElementById('bgmDucking').checked);
+                    formData.append('layout_mode', document.getElementById('layoutMode').value);
+                    formData.append('webhook_url', document.getElementById('webhookUrl').value);
+                    formData.append('gemini_api_key', document.getElementById('geminiApiKey').value);
+
+                    res = await fetch('/api/v1/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                } else {
+                    const url = document.getElementById('url').value;
+                    logToTerminal(`Initializing new job for: ${url}`);
+                    res = await fetch('/api/v1/clips', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            youtube_url: url,
+                            aspect_ratio: document.getElementById('aspectRatio').value,
+                            crop_style: document.getElementById('cropStyle').value,
+                            subtitle_color: document.getElementById('subtitleColor').value,
+                            subtitle_size: parseInt(document.getElementById('subtitleSize').value),
+                            custom_prompt: document.getElementById('customPrompt').value,
+                            clip_count: parseInt(document.getElementById('clipCount').value),
+                            auto_reframe: document.getElementById('autoReframe').checked,
+                            word_karaoke: document.getElementById('wordKaraoke').checked,
+                            bgm_ducking: document.getElementById('bgmDucking').checked,
+                            layout_mode: document.getElementById('layoutMode').value,
+                            webhook_url: document.getElementById('webhookUrl').value,
+                            gemini_api_key: document.getElementById('geminiApiKey').value
+                        })
+                    });
+                }
+
+                if (!res.ok) throw new Error('API Error');
+                
+                const data = await res.json();
+                currentJobId = data.job_id;
+                
+                logToTerminal(`Job created. ID: ${currentJobId}`, 'success');
+                
+                if (pollInterval) clearInterval(pollInterval);
+                pollInterval = setInterval(pollJobStatus, 5000);
+                pollJobStatus();
+
+            } catch (err) {
+                logToTerminal(`Failed to create job: ${err.message}`, 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<span>Extract Viral Clip</span>';
+            }
+        });
+    </script>
+</body>
+</html>
