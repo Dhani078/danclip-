@@ -1259,7 +1259,11 @@
                         });
                     }
 
-                    if (!res.ok) throw new Error('API Error');
+                    if (!res.ok) {
+                        const errJson = await res.json().catch(() => ({}));
+                        const errMsg = errJson.detail || `HTTP ${res.status}: ${res.statusText}`;
+                        throw new Error(errMsg);
+                    }
 
                     const data = await res.json();
                     currentJobId = data.job_id;
