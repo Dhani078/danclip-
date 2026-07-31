@@ -269,13 +269,24 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
         
     # Watermark Filter Overlay
     if has_watermark:
-        w_pos_expr = "x=main_w-overlay_w-30:y=30" # top_right
+        w_pos_expr = "x=main_w-overlay_w-30:y=50" # top_right
         if watermark_pos == "top_left":
-            w_pos_expr = "x=30:y=30"
+            w_pos_expr = "x=30:y=50"
         elif watermark_pos == "bottom_right":
-            w_pos_expr = "x=main_w-overlay_w-30:y=main_h-overlay_h-30"
+            w_pos_expr = "x=main_w-overlay_w-30:y=main_h-overlay_h-180"
         elif watermark_pos == "bottom_left":
-            w_pos_expr = "x=30:y=main_h-overlay_h-30"
+            w_pos_expr = "x=30:y=main_h-overlay_h-180"
+        elif watermark_pos in ["safe_center", "center_safe"]:
+            # Green Safe Zone: Center of the screen, away from TikTok/Reels UI buttons
+            w_pos_expr = "x=(main_w-overlay_w)/2:y=(main_h-overlay_h)/2.2"
+        elif watermark_pos == "safe_top_center":
+            # Upper Safe Zone (18% from top, avoiding top header UI)
+            w_pos_expr = "x=(main_w-overlay_w)/2:y=main_h*0.18"
+        elif watermark_pos == "safe_middle_right":
+            # Middle Right avoiding TikTok action buttons on the far right
+            w_pos_expr = "x=main_w-overlay_w-120:y=(main_h-overlay_h)/2"
+        elif watermark_pos == "safe_middle_left":
+            w_pos_expr = "x=120:y=(main_h-overlay_h)/2"
             
         wm_filter = f"[{watermark_input_idx}:v]scale=160:-1[wm];{v_current}[wm]overlay={w_pos_expr}[v_wm]"
         filter_complex += f";{wm_filter}"
