@@ -133,6 +133,16 @@
                                     </select>
                                 </div>
                                 <div>
+                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Subtitle Style Preset</label>
+                                    <select id="subtitlePreset" class="w-full bg-zinc-900 border border-amber-500/30 rounded text-xs text-amber-300 font-semibold py-1.5 px-2 focus:outline-none focus:border-amber-500">
+                                        <option value="hormozi" selected>🔥 Alex Hormozi (Bold Yellow)</option>
+                                        <option value="mrbeast">⚡ MrBeast (Multi-Color Impact)</option>
+                                        <option value="multicolor">🎨 Multi-Color Auto Highlights</option>
+                                        <option value="tiktok_neon">✨ TikTok Viral Neon Glow</option>
+                                        <option value="ali_abdaal">📖 Ali Abdaal (Aesthetic Box)</option>
+                                    </select>
+                                </div>
+                                <div>
                                     <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Subtitle Color</label>
                                     <select id="subtitleColor" class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
                                         <option value="&H00FFFF">Yellow (Opus Style)</option>
@@ -771,6 +781,7 @@
                     formData.append('crop_style', document.getElementById('cropStyle').value);
                     formData.append('subtitle_color', document.getElementById('subtitleColor').value);
                     formData.append('subtitle_size', parseInt(document.getElementById('subtitleSize').value));
+                    formData.append('subtitle_preset', document.getElementById('subtitlePreset').value);
                     formData.append('custom_prompt', document.getElementById('customPrompt').value);
                     formData.append('clip_count', parseInt(document.getElementById('clipCount').value));
                     formData.append('auto_reframe', document.getElementById('autoReframe').checked);
@@ -796,6 +807,7 @@
                             crop_style: document.getElementById('cropStyle').value,
                             subtitle_color: document.getElementById('subtitleColor').value,
                             subtitle_size: parseInt(document.getElementById('subtitleSize').value),
+                            subtitle_preset: document.getElementById('subtitlePreset').value,
                             custom_prompt: document.getElementById('customPrompt').value,
                             clip_count: parseInt(document.getElementById('clipCount').value),
                             auto_reframe: document.getElementById('autoReframe').checked,
