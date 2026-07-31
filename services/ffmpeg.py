@@ -233,17 +233,17 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
         
     map_a = "[a_out]"
     if has_bgm:
-        # BGM ducking using sidechaincompress + Broadcast EBU R128 Loudness Normalization
+        # BGM ducking using sidechaincompress + Broadcast EBU R128 Loudness Normalization (-16 LUFS for TikTok/Reels)
         audio_filter = (
             ";[1:a]volume=0.3[bgm_vol];"
             "[0:a]asplit[a_main][a_side];"
             "[bgm_vol][a_side]sidechaincompress=threshold=0.08:ratio=10:attack=100:release=1000[bgm_ducked];"
-            "[a_main][bgm_ducked]amix=inputs=2:duration=first:dropout_transition=2,loudnorm=I=-16:TP=-1.5:LRA=11[a_out]"
+            "[a_main][bgm_ducked]amix=inputs=2:duration=first:dropout_transition=2,loudnorm=I=-16:TP=-1.5:LRA=11:linear=true[a_out]"
         )
         filter_complex += audio_filter
     else:
         # Professional Broadcast EBU R128 Loudness Normalization (-16 LUFS for TikTok/Reels)
-        audio_filter = ";[0:a]loudnorm=I=-16:TP=-1.5:LRA=11[a_out]"
+        audio_filter = ";[0:a]loudnorm=I=-16:TP=-1.5:LRA=11:linear=true[a_out]"
         filter_complex += audio_filter
     
     cmd = [
