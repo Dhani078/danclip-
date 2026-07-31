@@ -156,6 +156,14 @@
                                     </select>
                                 </div>
                                 <div>
+                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Subtitle Position (Vertical)</label>
+                                    <select id="subtitlePosition" class="w-full bg-zinc-900 border border-emerald-500/30 rounded text-xs text-emerald-400 font-semibold py-1.5 px-2 focus:outline-none focus:border-emerald-500" onchange="setSubtitlePos(this.value)">
+                                        <option value="bottom" selected>⬇️ Bottom (Classic - 15%)</option>
+                                        <option value="middle">↔️ Middle / Center (50%)</option>
+                                        <option value="top">⬆️ Top Header (80%)</option>
+                                    </select>
+                                </div>
+                                <div>
                                     <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Subtitle Size</label>
                                     <select id="subtitleSize" class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
                                         <option value="70">Small</option>
@@ -386,11 +394,30 @@
                         
                         html += `
                         <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 flex flex-col md:flex-row gap-6 mb-6 shadow-xl">
-                            <!-- Left: Video Player Preview -->
+                            <!-- Left: Video Player Preview & Drag Position Editor -->
                             <div class="flex-shrink-0 w-full md:w-[260px] aspect-[9/16] bg-zinc-950 border border-zinc-800 rounded-lg overflow-hidden relative flex items-center justify-center group shadow-2xl">
                                 ${previewVideoSrc ? `
                                 <video id="video_${index}" src="${previewVideoSrc}?t=${Date.now()}" class="w-full h-full object-cover" controls playsinline></video>
-                                <div id="subtitleOverlay_${index}" class="absolute bottom-[15%] left-0 w-full text-center px-4 pointer-events-none transition-all duration-100" style="--sub-color: #FFFF00; text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 4px 4px rgba(0,0,0,0.5); line-height: 1.3; font-size: 1.25rem;"></div>
+                                
+                                <!-- Quick Subtitle Position Preset Buttons -->
+                                <div class="absolute top-2 right-2 flex flex-col gap-1 z-20 opacity-80 hover:opacity-100 transition-opacity bg-zinc-950/80 p-1 rounded-md border border-zinc-800 backdrop-blur-sm">
+                                    <button type="button" onclick="setSubtitlePos('top')" class="text-[10px] text-amber-300 hover:text-white px-1.5 py-0.5 rounded hover:bg-zinc-800 font-mono font-bold" title="Posisi Atas (Header)">⬆️ Top</button>
+                                    <button type="button" onclick="setSubtitlePos('middle')" class="text-[10px] text-amber-300 hover:text-white px-1.5 py-0.5 rounded hover:bg-zinc-800 font-mono font-bold" title="Posisi Tengah">↔️ Mid</button>
+                                    <button type="button" onclick="setSubtitlePos('bottom')" class="text-[10px] text-amber-300 hover:text-white px-1.5 py-0.5 rounded hover:bg-zinc-800 font-mono font-bold" title="Posisi Bawah">⬇️ Bot</button>
+                                </div>
+
+                                <!-- Interactive Draggable Subtitle Box Handle -->
+                                <div id="subtitleOverlay_${index}" 
+                                     onmousedown="startSubtitleDrag(event, ${index})" 
+                                     ontouchstart="startSubtitleDrag(event, ${index})"
+                                     class="absolute bottom-[15%] left-0 w-full text-center px-2 cursor-ns-resize z-10 transition-all duration-75 select-none py-1.5 group/sub" 
+                                     style="--sub-color: #FFFF00; text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 4px 4px rgba(0,0,0,0.5); line-height: 1.3; font-size: 1.25rem;"
+                                     title="🖐️ Geser/Drag ke Atas/Bawah untuk mengatur posisi Subtitle!">
+                                     <div class="inline-block bg-zinc-950/80 border border-amber-400/60 text-amber-300 font-extrabold text-xs px-3 py-1.5 rounded-lg shadow-xl group-hover/sub:scale-105 transition-transform">
+                                         <span>💬 GESER SUBTITLE KE ATAS/BAWAH</span>
+                                         <span id="posLabel_${index}" class="text-[9px] font-mono text-emerald-400 block font-semibold mt-0.5">↕️ Drag Vertikal Aktif</span>
+                                     </div>
+                                </div>
                                 ` : `<div class="text-zinc-600 text-xs font-mono text-center px-4"><span class="animate-pulse">Processing...</span></div>`}
                             </div>
                             
@@ -550,6 +577,86 @@
             }).catch(err => {
                 showToast(`Gagal menyalin: ${err}`);
             });
+        // Interactive Subtitle Drag & Position Editor Logic
+        let isDraggingSub = false;
+        let currentDragIdx = null;
+
+        function startSubtitleDrag(e, index) {
+            e.preventDefault();
+            isDraggingSub = true;
+            currentDragIdx = index;
+            
+            document.addEventListener('mousemove', handleSubtitleDrag);
+            document.addEventListener('mouseup', stopSubtitleDrag);
+            document.addEventListener('touchmove', handleSubtitleDrag);
+            document.addEventListener('touchend', stopSubtitleDrag);
+        }
+
+        function handleSubtitleDrag(e) {
+            if (!isDraggingSub || currentDragIdx === null) return;
+            const video = document.getElementById(`video_${currentDragIdx}`);
+            const overlay = document.getElementById(`subtitleOverlay_${currentDragIdx}`);
+            if (!video || !overlay) return;
+
+            const rect = video.parentElement.getBoundingClientRect();
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            let offsetY = clientY - rect.top;
+            
+            // Clamp inside video height bounds (10% to 85%)
+            let pct = Math.max(10, Math.min(85, (offsetY / rect.height) * 100));
+            let bottomPct = 100 - pct;
+            
+            overlay.style.bottom = `${bottomPct}%`;
+            overlay.style.top = 'auto';
+            
+            // Determine position category
+            let posStr = 'bottom';
+            if (bottomPct > 70) posStr = 'top';
+            else if (bottomPct > 40) posStr = 'middle';
+            
+            const posLabel = document.getElementById(`posLabel_${currentDragIdx}`);
+            if (posLabel) {
+                posLabel.textContent = `Vertical: ${Math.round(bottomPct)}% (${posStr.toUpperCase()})`;
+            }
+            
+            syncSubtitlePosition(posStr);
+        }
+
+        function stopSubtitleDrag() {
+            isDraggingSub = false;
+            currentDragIdx = null;
+            document.removeEventListener('mousemove', handleSubtitleDrag);
+            document.removeEventListener('mouseup', stopSubtitleDrag);
+            document.removeEventListener('touchmove', handleSubtitleDrag);
+            document.removeEventListener('touchend', stopSubtitleDrag);
+        }
+
+        function setSubtitlePos(posStr) {
+            document.querySelectorAll('[id^="subtitleOverlay_"]').forEach((overlay, idx) => {
+                if (posStr === 'top') {
+                    overlay.style.bottom = '80%';
+                } else if (posStr === 'middle') {
+                    overlay.style.bottom = '50%';
+                } else {
+                    overlay.style.bottom = '15%';
+                }
+                const posLabel = document.getElementById(`posLabel_${idx}`);
+                if (posLabel) {
+                    posLabel.textContent = `Vertical: ${posStr.toUpperCase()}`;
+                }
+            });
+            syncSubtitlePosition(posStr);
+        }
+
+        function syncSubtitlePosition(posVal) {
+            const sel = document.getElementById('subtitlePosition');
+            if (sel && sel.value !== posVal) {
+                sel.value = posVal;
+            }
+            const reSel = document.getElementById('re_subtitlePosition');
+            if (reSel && reSel.value !== posVal) {
+                reSel.value = posVal;
+            }
         }
 
         // Subtitle rendering logic
@@ -782,6 +889,7 @@
                     formData.append('subtitle_color', document.getElementById('subtitleColor').value);
                     formData.append('subtitle_size', parseInt(document.getElementById('subtitleSize').value));
                     formData.append('subtitle_preset', document.getElementById('subtitlePreset').value);
+                    formData.append('subtitle_position', document.getElementById('subtitlePosition').value);
                     formData.append('custom_prompt', document.getElementById('customPrompt').value);
                     formData.append('clip_count', parseInt(document.getElementById('clipCount').value));
                     formData.append('auto_reframe', document.getElementById('autoReframe').checked);
@@ -808,6 +916,7 @@
                             subtitle_color: document.getElementById('subtitleColor').value,
                             subtitle_size: parseInt(document.getElementById('subtitleSize').value),
                             subtitle_preset: document.getElementById('subtitlePreset').value,
+                            subtitle_position: document.getElementById('subtitlePosition').value,
                             custom_prompt: document.getElementById('customPrompt').value,
                             clip_count: parseInt(document.getElementById('clipCount').value),
                             auto_reframe: document.getElementById('autoReframe').checked,

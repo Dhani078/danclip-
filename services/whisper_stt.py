@@ -149,15 +149,11 @@ def apply_multicolor_highlight(clean_word: str, default_color: str = "&H00FFFFFF
     return f"{{\\c{default_color}}}{clean_word}"
 
 
-def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100, sub_color: str = "&H00FFFFFF", word_karaoke: bool = False, hook_title: str = "", subtitle_preset: str = "hormozi") -> str:
+def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100, sub_color: str = "&H00FFFFFF", word_karaoke: bool = False, hook_title: str = "", subtitle_preset: str = "hormozi", subtitle_position: str = "bottom") -> str:
     """
     Transcribe audio file to ASS format using Whisper.
-    Supports Preset Subtitle Styles:
-    - 'hormozi': Alex Hormozi Style (Bold yellow/white, 1-2 words/line, active highlight)
-    - 'mrbeast': MrBeast Style (Large bold, multi-color word highlighting)
-    - 'ali_abdaal': Ali Abdaal Aesthetic (Clean serif font with dark background box)
-    - 'tiktok_neon': TikTok Viral Neon (Glowing neon outline)
-    - 'multicolor': Multi-Color Auto Word Highlighting (Numbers=Yellow, Impact=Green, Danger=Red)
+    Supports Preset Subtitle Styles and Dynamic Vertical Positioning:
+    - 'subtitle_position': 'bottom' (MarginV=320), 'middle'/'center' (MarginV=960), 'top' (MarginV=1500), or numeric offset.
     """
     model = get_whisper_model()
     
@@ -176,6 +172,21 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
     actual_font_size = int(sub_size) * 4 if int(sub_size) < 30 else int(sub_size)
     preset = (subtitle_preset or "hormozi").lower()
     
+    # Position mapping for ASS Vertical Margin & Alignment
+    margin_v = 320
+    alignment_val = 2
+    
+    pos = str(subtitle_position or "bottom").lower()
+    if pos == "top":
+        margin_v = 1500
+        alignment_val = 8
+    elif pos in ["middle", "center"]:
+        margin_v = 900
+        alignment_val = 5
+    elif pos.isdigit():
+        margin_v = int(pos)
+        alignment_val = 2
+        
     # Configure ASS Styles based on preset
     font_name = "Segoe UI Black"
     primary_color = sub_color if sub_color else "&H00FFFFFF"
@@ -214,7 +225,7 @@ PlayResY: 1920
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,{font_name},{actual_font_size},{primary_color},&H000000FF,&H00000000,{back_color},-1,0,0,0,100,100,0,0,{border_style},{outline_val},{shadow_val},2,60,60,320,1
+Style: Default,{font_name},{actual_font_size},{primary_color},&H000000FF,&H00000000,{back_color},-1,0,0,0,100,100,0,0,{border_style},{outline_val},{shadow_val},{alignment_val},60,60,{margin_v},1
 Style: HookHeader,Segoe UI Black,52,&H0000FFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,8,4,8,60,60,240,1
 
 [Events]
@@ -314,7 +325,7 @@ def format_ass_time(seconds: float) -> str:
     return f"{hours}:{minutes:02d}:{secs:02d}.{cs:02d}"
 
 
-async def generate_whisper_srt(input_video: str, start_time: str, end_time: str, temp_dir: str, clip_id: str, sub_size: int = 100, sub_color: str = "&H00FFFFFF", word_karaoke: bool = False, hook_title: str = "", subtitle_preset: str = "hormozi") -> str:
+async def generate_whisper_srt(input_video: str, start_time: str, end_time: str, temp_dir: str, clip_id: str, sub_size: int = 100, sub_color: str = "&H00FFFFFF", word_karaoke: bool = False, hook_title: str = "", subtitle_preset: str = "hormozi", subtitle_position: str = "bottom") -> str:
     """
     Full pipeline: extract clip audio -> transcribe with Whisper -> return ASS string.
     All timestamps in the returned ASS are relative to clip start (00:00:00).
@@ -327,8 +338,8 @@ async def generate_whisper_srt(input_video: str, start_time: str, end_time: str,
         if not success:
             return ""
             
-        # Step 2: Transcribe (ASS format with preset styles & multi-color highlighting)
-        ass_content = await asyncio.to_thread(transcribe_to_ass, audio_path, "id", sub_size, sub_color, word_karaoke, hook_title, subtitle_preset)
+        # Step 2: Transcribe (ASS format with preset styles, vertical positioning & multi-color highlighting)
+        ass_content = await asyncio.to_thread(transcribe_to_ass, audio_path, "id", sub_size, sub_color, word_karaoke, hook_title, subtitle_preset, subtitle_position)
         return ass_content
     except Exception as e:
         print(f"[Whisper STT Error] {e}")
