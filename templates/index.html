@@ -89,7 +89,7 @@
                     </div>
                 </div>
 
-                <form id="clipForm" class="flex flex-col gap-4">
+                <form id="clipForm" onsubmit="event.preventDefault(); return false;" class="flex flex-col gap-4">
                     <!-- URL Input (Supports Single URL or Multi-URL Batch) -->
                     <div id="urlInputContainer">
                         <div class="flex justify-between items-center mb-1">
@@ -1040,6 +1040,7 @@
             }
         }
 
+        const form = document.getElementById('clipForm');
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
 
