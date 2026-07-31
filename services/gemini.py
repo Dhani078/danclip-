@@ -32,7 +32,7 @@ async def analyze_video(video_path: str, custom_prompt: str = "", clip_count: in
                 raise Exception("Gemini file processing timed out after 120 seconds.")
             await asyncio.sleep(2)
 
-        user_instruction = f" Arahan Tambahan Pengguna: {custom_prompt}\n" if custom_prompt else ""
+        user_instruction = f"🔥 INSTRUKSI KHUSUS / PRIORITAS UTAMA AI DIRECTOR (PENGGUNA): '{custom_prompt}'\n(WAJIB PRIORITASKAN mencari dan mengekstrak momen/topik yang sesuai dengan instruksi khusus pengguna ini di dalam konten!)\n\n" if custom_prompt else ""
 
         prompt = (
             f"Bertindaklah sebagai Senior Content Strategist & Viral TikTok Copywriter.\n"
