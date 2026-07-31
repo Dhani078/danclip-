@@ -165,7 +165,7 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
         duration = str(t2 - t1)
         if (t2 - t1) <= 0:
             duration = "60"
-    except:
+    except Exception:
         duration = "60"
 
     # Step: YuNet Face & Scene Detection (Multi-Keyframe Sampling)
