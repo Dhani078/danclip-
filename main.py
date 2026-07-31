@@ -193,11 +193,12 @@ async def process_video_pipeline(job_id: str):
                 
                 hook_title_text = getattr(clip, "hook_title", "")
                 
-                # Use Whisper for frame-accurate subtitle timestamps, karaoke styling, presets, and hook banner
+                # Use Whisper for frame-accurate subtitle timestamps, karaoke styling, presets, positioning, and hook banner
                 whisper_srt = await generate_whisper_srt(
                     raw_video_path, clip.start_time, clip.end_time, temp_dir, clip.id,
                     sub_size=job.subtitle_size, sub_color=job.subtitle_color, word_karaoke=job.word_karaoke,
-                    hook_title=hook_title_text, subtitle_preset=getattr(job, "subtitle_preset", "hormozi")
+                    hook_title=hook_title_text, subtitle_preset=getattr(job, "subtitle_preset", "hormozi"),
+                    subtitle_position=getattr(job, "subtitle_position", "bottom")
                 )
                 
                 cover_export_path = os.path.join(settings.STORAGE_DIR, "exports", f"{job_id}_{clip.id}_cover.jpg")
@@ -297,6 +298,7 @@ async def create_clip(request: ClipRequest, background_tasks: BackgroundTasks, d
         subtitle_color=request.subtitle_color,
         subtitle_size=request.subtitle_size,
         subtitle_preset=request.subtitle_preset,
+        subtitle_position=request.subtitle_position,
         crop_style=request.crop_style,
         custom_prompt=request.custom_prompt,
         clip_count=request.clip_count,
@@ -326,6 +328,7 @@ async def upload_local_video(
     subtitle_color: str = Form("&H00FFFF"),
     subtitle_size: int = Form(90),
     subtitle_preset: str = Form("hormozi"),
+    subtitle_position: str = Form("bottom"),
     crop_style: str = Form("center_crop"),
     custom_prompt: str = Form(""),
     clip_count: int = Form(3),
@@ -344,6 +347,7 @@ async def upload_local_video(
         subtitle_color=subtitle_color,
         subtitle_size=subtitle_size,
         subtitle_preset=subtitle_preset,
+        subtitle_position=subtitle_position,
         crop_style=crop_style,
         custom_prompt=custom_prompt,
         clip_count=clip_count,
@@ -446,6 +450,7 @@ class RerenderRequest(BaseModel):
     subtitle_color: str
     subtitle_size: int
     subtitle_preset: str = "hormozi"
+    subtitle_position: str = "bottom"
     subtitle_opacity: int = 100
     word_karaoke: bool = False
 
@@ -458,6 +463,7 @@ async def rerender_clip(job_id: str, request: RerenderRequest, background_tasks:
     job.subtitle_color = request.subtitle_color
     job.subtitle_size = request.subtitle_size
     job.subtitle_preset = request.subtitle_preset
+    job.subtitle_position = request.subtitle_position
     job.word_karaoke = request.word_karaoke
     job.status = JobStatus.EDITING
     job.progress_percentage = 80

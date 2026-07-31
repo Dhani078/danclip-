@@ -9,6 +9,7 @@ class ClipRequest(BaseModel):
     subtitle_color: str = "&H00FFFF"
     subtitle_size: int = 90
     subtitle_preset: str = "hormozi"
+    subtitle_position: str = "bottom"
     crop_style: str = "center_crop"
     custom_prompt: Optional[str] = ""
     clip_count: int = 3
