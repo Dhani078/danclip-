@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,7 +8,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -32,41 +35,50 @@
             background-color: #09090b;
             color: #f4f4f5;
         }
+
         .terminal-scroll::-webkit-scrollbar {
             width: 8px;
         }
+
         .terminal-scroll::-webkit-scrollbar-track {
-            background: #18181b; 
+            background: #18181b;
         }
+
         .terminal-scroll::-webkit-scrollbar-thumb {
-            background: #27272a; 
+            background: #27272a;
             border-radius: 4px;
         }
     </style>
 </head>
+
 <body class="antialiased min-h-screen flex flex-col selection:bg-zinc-800 selection:text-zinc-100">
-    
+
     <!-- Toast Notification -->
-    <div id="toast" class="fixed bottom-5 right-5 bg-emerald-400 text-zinc-950 px-4 py-2.5 rounded-lg shadow-xl font-semibold text-xs hidden z-50 transition-all duration-300"></div>
+    <div id="toast"
+        class="fixed bottom-5 right-5 bg-emerald-400 text-zinc-950 px-4 py-2.5 rounded-lg shadow-xl font-semibold text-xs hidden z-50 transition-all duration-300">
+    </div>
 
     <!-- Header -->
     <header class="border-b border-zinc-800 bg-zinc-950 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
         <div class="flex items-center gap-3">
-            <div class="h-6 w-6 rounded bg-zinc-100 flex items-center justify-center text-zinc-950 font-bold text-xs">AC</div>
+            <div class="h-6 w-6 rounded bg-zinc-100 flex items-center justify-center text-zinc-950 font-bold text-xs">AC
+            </div>
             <h1 class="font-medium text-sm text-zinc-100 tracking-tight">AI Auto-Clipper</h1>
         </div>
         <div class="flex items-center gap-4 text-xs font-mono text-zinc-400">
             <div class="flex items-center gap-1.5">
                 <span class="relative flex h-2 w-2">
-                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    <span
+                        class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
                 DB Connected
             </div>
             <div class="flex items-center gap-1.5">
                 <span class="relative flex h-2 w-2">
-                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    <span
+                        class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
                 Gemini Auto-Fallback
             </div>
@@ -75,7 +87,7 @@
 
     <!-- Main Content -->
     <main class="flex-1 max-w-[1600px] w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
+
         <!-- Left Column: Input & Terminal -->
         <div class="lg:col-span-4 flex flex-col gap-6">
             <!-- Form Card -->
@@ -84,8 +96,12 @@
                     <h2 class="text-sm font-medium text-zinc-100">New Extraction Job</h2>
                     <!-- Input Mode Switcher -->
                     <div class="flex gap-1 bg-zinc-950 p-1 rounded-md border border-zinc-800">
-                        <button type="button" id="tabUrl" onclick="switchInputMode('url')" class="px-2.5 py-1 text-xs font-medium rounded bg-zinc-800 text-zinc-100 transition-colors">🔗 YouTube URL</button>
-                        <button type="button" id="tabUpload" onclick="switchInputMode('upload')" class="px-2.5 py-1 text-xs font-medium rounded text-zinc-400 hover:text-zinc-200 transition-colors">📁 Drag & Drop Video</button>
+                        <button type="button" id="tabUrl" onclick="switchInputMode('url')"
+                            class="px-2.5 py-1 text-xs font-medium rounded bg-zinc-800 text-zinc-100 transition-colors">🔗
+                            YouTube URL</button>
+                        <button type="button" id="tabUpload" onclick="switchInputMode('upload')"
+                            class="px-2.5 py-1 text-xs font-medium rounded text-zinc-400 hover:text-zinc-200 transition-colors">📁
+                            Drag & Drop Video</button>
                     </div>
                 </div>
 
@@ -93,20 +109,31 @@
                     <!-- URL Input (Supports Single URL or Multi-URL Batch) -->
                     <div id="urlInputContainer">
                         <div class="flex justify-between items-center mb-1">
-                            <label for="url" class="text-xs text-zinc-400 font-medium">YouTube URL / Playlist Batch (1-5 Link)</label>
-                            <span class="text-[10px] text-amber-400 font-mono font-semibold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">⚡ Multi-URL Batch Supported</span>
+                            <label for="url" class="text-xs text-zinc-400 font-medium">YouTube URL / Playlist Batch (1-5
+                                Link)</label>
+                            <span
+                                class="text-[10px] text-amber-400 font-mono font-semibold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">⚡
+                                Multi-URL Batch Supported</span>
                         </div>
-                        <textarea id="url" name="url" rows="2" placeholder="Masukkan 1 link atau pisahkan beberapa link dengan baris baru (maks 5 link)...&#10;https://youtube.com/watch?v=1&#10;https://youtube.com/watch?v=2" 
+                        <textarea id="url" name="url" rows="2"
+                            placeholder="Masukkan 1 link atau pisahkan beberapa link dengan baris baru (maks 5 link)...&#10;https://youtube.com/watch?v=1&#10;https://youtube.com/watch?v=2"
                             class="w-full bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-xs font-mono text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 transition-colors resize-none"></textarea>
                     </div>
 
                     <!-- File Drag & Drop Upload Zone -->
                     <div id="uploadInputContainer" class="hidden">
-                        <div id="dropZone" onclick="document.getElementById('videoFile').click()" class="border-2 border-dashed border-zinc-800 hover:border-indigo-500 rounded-lg p-6 text-center cursor-pointer transition-colors bg-zinc-950/50">
-                            <input type="file" id="videoFile" accept="video/mp4,video/x-m4v,video/*" class="hidden" onchange="handleFileSelected(this.files)">
+                        <div id="dropZone" onclick="document.getElementById('videoFile').click()"
+                            class="border-2 border-dashed border-zinc-800 hover:border-indigo-500 rounded-lg p-6 text-center cursor-pointer transition-colors bg-zinc-950/50">
+                            <input type="file" id="videoFile" accept="video/mp4,video/x-m4v,video/*" class="hidden"
+                                onchange="handleFileSelected(this.files)">
                             <div class="flex flex-col items-center gap-2">
-                                <svg class="w-8 h-8 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 0115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
-                                <div class="text-xs text-zinc-300 font-medium" id="dropFileName">Drag & Drop MP4 Video here or <span class="text-indigo-400 underline">Browse</span></div>
+                                <svg class="w-8 h-8 text-zinc-500" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 0115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                </svg>
+                                <div class="text-xs text-zinc-300 font-medium" id="dropFileName">Drag & Drop MP4 Video
+                                    here or <span class="text-indigo-400 underline">Browse</span></div>
                                 <div class="text-[10px] text-zinc-500">Supports MP4, MOV, MKV up to 2GB</div>
                             </div>
                         </div>
@@ -114,30 +141,38 @@
 
                     <!-- Advanced Settings -->
                     <details class="group border border-zinc-800 rounded-md bg-zinc-950/50">
-                        <summary class="cursor-pointer px-3 py-2 text-xs font-medium text-zinc-400 hover:text-zinc-200 list-none flex justify-between items-center transition-colors outline-none">
+                        <summary
+                            class="cursor-pointer px-3 py-2 text-xs font-medium text-zinc-400 hover:text-zinc-200 list-none flex justify-between items-center transition-colors outline-none">
                             <span>⚙️ Advanced Settings & Multi-Language Translate</span>
                             <span class="transform group-open:rotate-180 transition-transform duration-200">▼</span>
                         </summary>
                         <div class="px-3 pb-3 pt-2 border-t border-zinc-800 flex flex-col gap-3">
                             <div class="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Aspect Ratio</label>
-                                    <select id="aspectRatio" class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
+                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Aspect
+                                        Ratio</label>
+                                    <select id="aspectRatio"
+                                        class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
                                         <option value="9:16">9:16 (TikTok/Reels)</option>
                                         <option value="4:5">4:5 (Instagram)</option>
                                         <option value="1:1">1:1 (Square)</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Layout Style</label>
-                                    <select id="cropStyle" class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
+                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Layout
+                                        Style</label>
+                                    <select id="cropStyle"
+                                        class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
                                         <option value="center_crop">Auto Center Crop</option>
                                         <option value="blur_pad">Blur Background</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Subtitle Style Preset</label>
-                                    <select id="subtitlePreset" class="w-full bg-zinc-900 border border-amber-500/30 rounded text-xs text-amber-300 font-semibold py-1.5 px-2 focus:outline-none focus:border-amber-500">
+                                    <label
+                                        class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Subtitle
+                                        Style Preset</label>
+                                    <select id="subtitlePreset"
+                                        class="w-full bg-zinc-900 border border-amber-500/30 rounded text-xs text-amber-300 font-semibold py-1.5 px-2 focus:outline-none focus:border-amber-500">
                                         <option value="hormozi" selected>🔥 Alex Hormozi (Bold Yellow)</option>
                                         <option value="mrbeast">⚡ MrBeast (Multi-Color Impact)</option>
                                         <option value="multicolor">🎨 Multi-Color Auto Highlights</option>
@@ -146,8 +181,11 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Subtitle Color</label>
-                                    <select id="subtitleColor" class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
+                                    <label
+                                        class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Subtitle
+                                        Color</label>
+                                    <select id="subtitleColor"
+                                        class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
                                         <option value="&H00FFFF">Yellow (Opus Style)</option>
                                         <option value="&HFFFFFF">White (Classic)</option>
                                         <option value="&H00FF00">Green (Gaming)</option>
@@ -159,54 +197,72 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Subtitle Position (Vertical)</label>
-                                    <select id="subtitlePosition" class="w-full bg-zinc-900 border border-emerald-500/30 rounded text-xs text-emerald-400 font-semibold py-1.5 px-2 focus:outline-none focus:border-emerald-500" onchange="setSubtitlePos(this.value)">
+                                    <label
+                                        class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Subtitle
+                                        Position (Vertical)</label>
+                                    <select id="subtitlePosition"
+                                        class="w-full bg-zinc-900 border border-emerald-500/30 rounded text-xs text-emerald-400 font-semibold py-1.5 px-2 focus:outline-none focus:border-emerald-500"
+                                        onchange="setSubtitlePos(this.value)">
                                         <option value="bottom" selected>⬇️ Bottom (Classic - 15%)</option>
                                         <option value="middle">↔️ Middle / Center (50%)</option>
                                         <option value="top">⬆️ Top Header (80%)</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">🌐 Subtitle Language (Auto-Translate)</label>
-                                    <select id="targetLanguage" class="w-full bg-zinc-900 border border-sky-500/30 rounded text-xs text-sky-400 font-semibold py-1.5 px-2 focus:outline-none focus:border-sky-500">
+                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">🌐
+                                        Subtitle Language (Auto-Translate)</label>
+                                    <select id="targetLanguage"
+                                        class="w-full bg-zinc-900 border border-sky-500/30 rounded text-xs text-sky-400 font-semibold py-1.5 px-2 focus:outline-none focus:border-sky-500">
                                         <option value="id" selected>🇮🇩 Bahasa Indonesia (Original)</option>
                                         <option value="en">🇺🇸 English (Auto-Translate)</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Subtitle Size</label>
-                                    <select id="subtitleSize" class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
+                                    <label
+                                        class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Subtitle
+                                        Size</label>
+                                    <select id="subtitleSize"
+                                        class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
                                         <option value="70">Small</option>
                                         <option value="90" selected>Medium</option>
                                         <option value="110">Large</option>
                                     </select>
                                 </div>
                             </div>
-                            
+
                             <div class="grid grid-cols-1 gap-3 mt-1">
                                 <div>
                                     <div class="flex items-center justify-between mb-1">
-                                        <label class="text-[10px] text-zinc-500 uppercase tracking-wider block font-semibold text-emerald-400">🤖 AI Director Prompt (Multi-Line / Scrollable)</label>
-                                        <button type="button" onclick="openPromptModal()" class="text-[10px] text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 transition">
+                                        <label
+                                            class="text-[10px] text-zinc-500 uppercase tracking-wider block font-semibold text-emerald-400">🤖
+                                            AI Director Prompt (Multi-Line / Scrollable)</label>
+                                        <button type="button" onclick="openPromptModal()"
+                                            class="text-[10px] text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 transition">
                                             <span>🔍 Pop-Up Fullscreen</span>
                                         </button>
                                     </div>
-                                    <textarea id="customPrompt" rows="3" placeholder="Tulis arahan prompt bebas di sini (bisa multi-line & discroll)...&#10;Misal:&#10;- Cari momen paling lucu&#10;- Wajib gunakan hashtag #flashpeak #motionklip #ezklip" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-zinc-200 p-2.5 focus:outline-none focus:border-emerald-500 placeholder-zinc-600 resize-y leading-relaxed font-mono overflow-y-auto"></textarea>
+                                    <textarea id="customPrompt" rows="3"
+                                        placeholder="Tulis arahan prompt bebas di sini (bisa multi-line & discroll)...&#10;Misal:&#10;- Cari momen paling lucu&#10;- Wajib gunakan hashtag #flashpeak #motionklip #ezklip"
+                                        class="w-full bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-zinc-200 p-2.5 focus:outline-none focus:border-emerald-500 placeholder-zinc-600 resize-y leading-relaxed font-mono overflow-y-auto"></textarea>
                                 </div>
                             </div>
-                            
+
                             <div class="grid grid-cols-2 gap-3 mt-1">
                                 <div>
-                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Clips to Extract</label>
-                                    <select id="clipCount" class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
+                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Clips
+                                        to Extract</label>
+                                    <select id="clipCount"
+                                        class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
                                         <option value="1">1 Clip (Faster)</option>
                                         <option value="3" selected>3 Clips (Balanced)</option>
                                         <option value="5">5 Clips (Deep Search)</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Podcast Layout Mode</label>
-                                    <select id="layoutMode" class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
+                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Podcast
+                                        Layout Mode</label>
+                                    <select id="layoutMode"
+                                        class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
                                         <option value="auto" selected>🤖 Auto-Detect (Smart Podcast)</option>
                                         <option value="single">👤 Single Speaker (No Split)</option>
                                         <option value="split">👥 Force Top/Bottom Split</option>
@@ -216,16 +272,23 @@
 
                             <div class="grid grid-cols-2 gap-3 mt-1 pt-2 border-t border-zinc-800/60">
                                 <div>
-                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">🖼️ Custom Watermark Logo</label>
-                                    <input type="file" id="watermarkFile" accept="image/*" onchange="uploadWatermarkFile(this)" class="w-full bg-zinc-900 border border-zinc-800 rounded text-[11px] text-zinc-400 py-1 px-1.5 focus:outline-none">
+                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">🖼️
+                                        Custom Watermark Logo</label>
+                                    <input type="file" id="watermarkFile" accept="image/*"
+                                        onchange="uploadWatermarkFile(this)"
+                                        class="w-full bg-zinc-900 border border-zinc-800 rounded text-[11px] text-zinc-400 py-1 px-1.5 focus:outline-none">
                                     <input type="hidden" id="watermarkPath" value="">
                                 </div>
                                 <div>
-                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">📍 Watermark Position</label>
-                                    <select id="watermarkPosition" class="w-full bg-zinc-900 border border-emerald-500/40 rounded text-xs text-emerald-300 font-semibold py-1.5 px-2 focus:outline-none focus:border-emerald-500">
-                                        <option value="safe_center" selected>🟢 Safe Center (Area Hijau Safe Zone)</option>
+                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">📍
+                                        Watermark Position</label>
+                                    <select id="watermarkPosition"
+                                        class="w-full bg-zinc-900 border border-emerald-500/40 rounded text-xs text-emerald-300 font-semibold py-1.5 px-2 focus:outline-none focus:border-emerald-500">
+                                        <option value="safe_center" selected>🟢 Safe Center (Area Hijau Safe Zone)
+                                        </option>
                                         <option value="safe_top_center">🟢 Safe Top Center (Di Atas Wajah)</option>
-                                        <option value="safe_middle_right">🟢 Safe Middle Right (Aman dr Tombol Like)</option>
+                                        <option value="safe_middle_right">🟢 Safe Middle Right (Aman dr Tombol Like)
+                                        </option>
                                         <option value="safe_middle_left">🟢 Safe Middle Left</option>
                                         <option value="top_right">↗️ Top Right (Pojok Kanan Atas)</option>
                                         <option value="top_left">↖️ Top Left (Pojok Kiri Atas)</option>
@@ -237,16 +300,21 @@
 
                             <div class="grid grid-cols-2 gap-3 mt-1">
                                 <div>
-                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">🔤 Custom Font (.ttf/.otf)</label>
-                                    <input type="file" id="fontFile" accept=".ttf,.otf" onchange="uploadFontFile(this)" class="w-full bg-zinc-900 border border-zinc-800 rounded text-[11px] text-zinc-400 py-1 px-1.5 focus:outline-none">
+                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">🔤
+                                        Custom Font (.ttf/.otf)</label>
+                                    <input type="file" id="fontFile" accept=".ttf,.otf" onchange="uploadFontFile(this)"
+                                        class="w-full bg-zinc-900 border border-zinc-800 rounded text-[11px] text-zinc-400 py-1 px-1.5 focus:outline-none">
                                     <input type="hidden" id="fontPath" value="">
                                 </div>
                                 <div>
-                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">🔔 Animated SFX (Audio Pop)</label>
+                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">🔔
+                                        Animated SFX (Audio Pop)</label>
                                     <div class="pt-1.5">
                                         <label class="flex items-center gap-2 cursor-pointer">
-                                            <input type="checkbox" id="enableSFX" checked class="rounded bg-zinc-900 border-zinc-800 text-zinc-100 focus:ring-0">
-                                            <span class="text-xs text-amber-400 font-semibold">Play Pop sound on Hook</span>
+                                            <input type="checkbox" id="enableSFX" checked
+                                                class="rounded bg-zinc-900 border-zinc-800 text-zinc-100 focus:ring-0">
+                                            <span class="text-xs text-amber-400 font-semibold">Play Pop sound on
+                                                Hook</span>
                                         </label>
                                     </div>
                                 </div>
@@ -254,32 +322,45 @@
 
                             <div class="flex flex-col gap-2 pt-2">
                                 <label class="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" id="autoReframe" checked class="rounded bg-zinc-900 border-zinc-800 text-zinc-100 focus:ring-0 focus:ring-offset-0">
-                                    <span class="text-xs text-emerald-400 font-semibold">👤 Smart Face Tracking & Speaker Reframe (Visual AI)</span>
+                                    <input type="checkbox" id="autoReframe" checked
+                                        class="rounded bg-zinc-900 border-zinc-800 text-zinc-100 focus:ring-0 focus:ring-offset-0">
+                                    <span class="text-xs text-emerald-400 font-semibold">👤 Smart Face Tracking &
+                                        Speaker Reframe (Visual AI)</span>
                                 </label>
-                                    <label class="flex items-center gap-2 cursor-pointer">
-                                        <input type="checkbox" id="wordKaraoke" checked class="rounded bg-zinc-900 border-zinc-800 text-zinc-100 focus:ring-0 focus:ring-offset-0">
-                                        <span class="text-xs text-zinc-400 font-semibold text-emerald-400">Word Karaoke (Alex Hormozi)</span>
-                                    </label>
-                                    <label class="flex items-center gap-2 cursor-pointer">
-                                        <input type="checkbox" id="bgmDucking" checked class="rounded bg-zinc-900 border-zinc-800 text-zinc-100 focus:ring-0 focus:ring-offset-0">
-                                        <span class="text-xs text-zinc-400 font-semibold text-indigo-400">EBU R128 Audio Normalization</span>
-                                    </label>
-                                </div>
-                                 <div class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
-                                     <div>
-                                         <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Custom Gemini API Key (Optional)</label>
-                                         <input type="password" id="geminiApiKey" value="" placeholder="Kosongkan untuk pakai System Default Key..." class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600 placeholder-zinc-700 font-mono">
-                                     </div>
-                                     <div>
-                                         <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Custom Webhook / Telegram Bot (Optional)</label>
-                                         <input type="text" id="webhookUrl" value="" placeholder="Kosongkan untuk kirim ke Telegram Bot Default Anda..." class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600 placeholder-zinc-700 font-mono">
-                                     </div>
-                                 </div>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" id="wordKaraoke" checked
+                                        class="rounded bg-zinc-900 border-zinc-800 text-zinc-100 focus:ring-0 focus:ring-offset-0">
+                                    <span class="text-xs text-zinc-400 font-semibold text-emerald-400">Word Karaoke
+                                        (Alex Hormozi)</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" id="bgmDucking" checked
+                                        class="rounded bg-zinc-900 border-zinc-800 text-zinc-100 focus:ring-0 focus:ring-offset-0">
+                                    <span class="text-xs text-zinc-400 font-semibold text-indigo-400">EBU R128 Audio
+                                        Normalization</span>
+                                </label>
                             </div>
-                        </details>
-                    
-                    <button type="button" id="submitBtn" onclick="handleFormSubmit(event)" class="w-full bg-zinc-100 hover:bg-white text-zinc-950 font-medium py-2 px-4 rounded-md text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer">
+                            <div class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Custom
+                                        Gemini API Key (Optional)</label>
+                                    <input type="password" id="geminiApiKey" value=""
+                                        placeholder="Kosongkan untuk pakai System Default Key..."
+                                        class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600 placeholder-zinc-700 font-mono">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Custom
+                                        Webhook / Telegram Bot (Optional)</label>
+                                    <input type="text" id="webhookUrl" value=""
+                                        placeholder="Kosongkan untuk kirim ke Telegram Bot Default Anda..."
+                                        class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600 placeholder-zinc-700 font-mono">
+                                </div>
+                            </div>
+                        </div>
+                    </details>
+
+                    <button type="button" id="submitBtn" onclick="handleFormSubmit(event)"
+                        class="w-full bg-zinc-100 hover:bg-white text-zinc-950 font-medium py-2 px-4 rounded-md text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer">
                         <span>Extract Viral Clip</span>
                     </button>
                 </form>
@@ -292,16 +373,18 @@
                         <div class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
                         <h2 class="text-xs font-mono uppercase tracking-wider text-zinc-400">Pipeline Terminal</h2>
                     </div>
-                    <span id="statusBadge" class="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">IDLE</span>
+                    <span id="statusBadge"
+                        class="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">IDLE</span>
                 </div>
-                
+
                 <!-- Progress Bar -->
                 <div class="w-full bg-zinc-950 h-1.5 rounded-full overflow-hidden mb-3 border border-zinc-800">
                     <div id="progressBar" class="bg-zinc-100 h-full w-0 transition-all duration-300"></div>
                 </div>
 
                 <!-- Terminal Console -->
-                <div id="terminal" class="flex-1 bg-zinc-950 border border-zinc-800 rounded-md p-3 font-mono text-xs text-zinc-400 overflow-y-auto terminal-scroll flex flex-col gap-1">
+                <div id="terminal"
+                    class="flex-1 bg-zinc-950 border border-zinc-800 rounded-md p-3 font-mono text-xs text-zinc-400 overflow-y-auto terminal-scroll flex flex-col gap-1">
                     <div class="text-zinc-600">// Waiting for job submission...</div>
                 </div>
             </div>
@@ -309,7 +392,8 @@
 
         <!-- Right Column: Extracted Clips Preview -->
         <div id="clipsContainer" class="lg:col-span-8 flex flex-col gap-6">
-            <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 flex items-center justify-center h-[500px] text-zinc-500 text-sm font-mono text-center">
+            <div
+                class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 flex items-center justify-center h-[500px] text-zinc-500 text-sm font-mono text-center">
                 Submit a video to extract viral clips.
             </div>
         </div>
@@ -329,7 +413,7 @@
         const statusBadge = document.getElementById('statusBadge');
 
         function logToTerminal(message, type = 'info') {
-            const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' });
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
             let color = 'text-zinc-400';
             if (type === 'error') color = 'text-rose-500';
             if (type === 'success') color = 'text-emerald-500';
@@ -343,12 +427,12 @@
 
         function updateUI(job) {
             statusBadge.textContent = job.status;
-            
-            statusBadge.className = 'text-[10px] font-mono px-2 py-0.5 rounded-full uppercase tracking-wider ' + 
+
+            statusBadge.className = 'text-[10px] font-mono px-2 py-0.5 rounded-full uppercase tracking-wider ' +
                 (job.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-500' :
-                 job.status === 'FAILED' ? 'bg-rose-500/10 text-rose-500' :
-                 job.status === 'QUEUED' ? 'bg-zinc-800 text-zinc-400' :
-                 'bg-amber-500/10 text-amber-500');
+                    job.status === 'FAILED' ? 'bg-rose-500/10 text-rose-500' :
+                        job.status === 'QUEUED' ? 'bg-zinc-800 text-zinc-400' :
+                            'bg-amber-500/10 text-amber-500');
 
             progressBar.style.width = `${job.progress_percentage}%`;
             if (job.status === 'FAILED') {
@@ -360,9 +444,9 @@
 
             const progressText = document.getElementById('progressText');
             const loadingSpinner = document.getElementById('loadingSpinner');
-            
+
             const isProcessing = ['DOWNLOADING', 'ANALYZING', 'EDITING'].includes(job.status);
-            
+
             if (progressText) {
                 if (isProcessing) {
                     progressText.classList.remove('hidden');
@@ -393,9 +477,9 @@
                 try {
                     const clips = JSON.parse(job.clips_json);
                     const outputs = job.output_video_path ? job.output_video_path.split(',') : [];
-                    
+
                     let html = '';
-                    
+
                     if (job.status === 'COMPLETED') {
                         html += `
                         <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 mb-6">
@@ -442,9 +526,9 @@
                         const videoSrc = outputs[index] || '';
                         // Always use the raw video for the web player so we don't double-render subtitles
                         const previewVideoSrc = videoSrc.replace('_rerender', '');
-                        
+
                         const tags = (clip.hashtags || []).map(t => `<span class="text-[10px] font-mono text-zinc-400 bg-zinc-800 px-2 py-1 rounded">#${t.trim()}</span>`).join('');
-                        
+
                         html += `
                         <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 flex flex-col md:flex-row gap-6 mb-6 shadow-xl">
                             <!-- Left: Video Player Preview & Drag Position Editor -->
@@ -609,7 +693,7 @@
                                         <div class="relative group rounded border border-zinc-800 overflow-hidden bg-zinc-900">
                                             <img src="${v}" class="w-full aspect-[9/16] object-cover">
                                             <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                                                <a href="${v}" download class="bg-amber-400 text-zinc-950 font-bold text-[10px] px-2 py-1 rounded shadow">Var ${vIdx+1} 📥</a>
+                                                <a href="${v}" download class="bg-amber-400 text-zinc-950 font-bold text-[10px] px-2 py-1 rounded shadow">Var ${vIdx + 1} 📥</a>
                                             </div>
                                         </div>
                                         `).join('')}
@@ -643,9 +727,9 @@
                         </div>
                         `;
                     });
-                    
+
                     document.getElementById('clipsContainer').innerHTML = html;
-                    
+
                     // Attach subtitle rendering logically without string escaping issues
                     setTimeout(() => {
                         clips.forEach((clip, index) => {
@@ -655,7 +739,7 @@
                             }
                         });
                     }, 100);
-                    
+
                     // Attach event listeners for real-time style preview
                     if (job.status === 'COMPLETED') {
                         ['re_subtitleColor', 're_subtitleSize', 're_subtitleOpacity', 're_wordKaraoke'].forEach(id => {
@@ -663,7 +747,7 @@
                         });
                         updateLivePreviewStyles();
                     }
-                } catch(e) {
+                } catch (e) {
                     console.error("Failed to parse clips JSON", e);
                 }
             }
@@ -672,16 +756,16 @@
         async function publishTikTokWithMode(videoPath, index) {
             const modeSelect = document.getElementById(`postMode_${index}`);
             const mode = modeSelect ? modeSelect.value : 'inbox';
-            
+
             const clip = (typeof currentClipsData !== 'undefined' && currentClipsData && currentClipsData[index]) ? currentClipsData[index] : {};
             const captionText = clip.tiktok_caption || clip.caption || clip.hook_title || "";
 
             let modeLabel = '📥 Draft Inbox';
             if (mode === 'direct') modeLabel = '⚡ Direct Post (Live)';
             if (mode === 'schedule') modeLabel = '⏰ Auto-Schedule (+3 Jam)';
-            
+
             alert(`🚀 Mengirim video & caption ke TikTok [${modeLabel}]...`);
-            
+
             try {
                 const res = await fetch('/api/v1/tiktok/publish', {
                     method: 'POST',
@@ -707,7 +791,7 @@
                     const errMsg = (data.detail && data.detail.trim()) ? data.detail : (data.message || JSON.stringify(data));
                     alert('❌ TikTok Post Failed:\n' + errMsg);
                 }
-            } catch(e) {
+            } catch (e) {
                 alert('❌ Error sending video to TikTok: ' + e.message);
             }
         }
@@ -718,7 +802,7 @@
             if (platform === 'tiktok') text = clip.tiktok_caption || clip.caption || clip.hook_title || "";
             else if (platform === 'reels') text = clip.reels_caption || clip.caption || clip.hook_title || "";
             else text = clip.shorts_caption || clip.caption || clip.hook_title || "";
-            
+
             if (!text) {
                 showToast("Tidak ada teks caption untuk disalin! ⚠️");
                 return;
@@ -728,531 +812,554 @@
             }).catch(err => {
                 showToast(`Gagal menyalin: ${err}`);
             });
+        }
+
         // Interactive Subtitle Drag & Position Editor Logic
-        let isDraggingSub = false;
-        let currentDragIdx = null;
+            let isDraggingSub = false;
+            let currentDragIdx = null;
 
-        function startSubtitleDrag(e, index) {
-            e.preventDefault();
-            isDraggingSub = true;
-            currentDragIdx = index;
-            
-            document.addEventListener('mousemove', handleSubtitleDrag);
-            document.addEventListener('mouseup', stopSubtitleDrag);
-            document.addEventListener('touchmove', handleSubtitleDrag);
-            document.addEventListener('touchend', stopSubtitleDrag);
-        }
+            function startSubtitleDrag(e, index) {
+                e.preventDefault();
+                isDraggingSub = true;
+                currentDragIdx = index;
 
-        function handleSubtitleDrag(e) {
-            if (!isDraggingSub || currentDragIdx === null) return;
-            const video = document.getElementById(`video_${currentDragIdx}`);
-            const overlay = document.getElementById(`subtitleOverlay_${currentDragIdx}`);
-            if (!video || !overlay) return;
-
-            const rect = video.parentElement.getBoundingClientRect();
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            let offsetY = clientY - rect.top;
-            
-            // Clamp inside video height bounds (10% to 85%)
-            let pct = Math.max(10, Math.min(85, (offsetY / rect.height) * 100));
-            let bottomPct = 100 - pct;
-            
-            overlay.style.bottom = `${bottomPct}%`;
-            overlay.style.top = 'auto';
-            
-            // Determine position category
-            let posStr = 'bottom';
-            if (bottomPct > 70) posStr = 'top';
-            else if (bottomPct > 40) posStr = 'middle';
-            
-            const posLabel = document.getElementById(`posLabel_${currentDragIdx}`);
-            if (posLabel) {
-                posLabel.textContent = `Vertical: ${Math.round(bottomPct)}% (${posStr.toUpperCase()})`;
+                document.addEventListener('mousemove', handleSubtitleDrag);
+                document.addEventListener('mouseup', stopSubtitleDrag);
+                document.addEventListener('touchmove', handleSubtitleDrag);
+                document.addEventListener('touchend', stopSubtitleDrag);
             }
-            
-            syncSubtitlePosition(posStr);
-        }
 
-        function stopSubtitleDrag() {
-            isDraggingSub = false;
-            currentDragIdx = null;
-            document.removeEventListener('mousemove', handleSubtitleDrag);
-            document.removeEventListener('mouseup', stopSubtitleDrag);
-            document.removeEventListener('touchmove', handleSubtitleDrag);
-            document.removeEventListener('touchend', stopSubtitleDrag);
-        }
+            function handleSubtitleDrag(e) {
+                if (!isDraggingSub || currentDragIdx === null) return;
+                const video = document.getElementById(`video_${currentDragIdx}`);
+                const overlay = document.getElementById(`subtitleOverlay_${currentDragIdx}`);
+                if (!video || !overlay) return;
 
-        function setSubtitlePos(posStr) {
-            document.querySelectorAll('[id^="subtitleOverlay_"]').forEach((overlay, idx) => {
-                if (posStr === 'top') {
-                    overlay.style.bottom = '80%';
-                } else if (posStr === 'middle') {
-                    overlay.style.bottom = '50%';
-                } else {
-                    overlay.style.bottom = '15%';
-                }
-                const posLabel = document.getElementById(`posLabel_${idx}`);
+                const rect = video.parentElement.getBoundingClientRect();
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                let offsetY = clientY - rect.top;
+
+                // Clamp inside video height bounds (10% to 85%)
+                let pct = Math.max(10, Math.min(85, (offsetY / rect.height) * 100));
+                let bottomPct = 100 - pct;
+
+                overlay.style.bottom = `${bottomPct}%`;
+                overlay.style.top = 'auto';
+
+                // Determine position category
+                let posStr = 'bottom';
+                if (bottomPct > 70) posStr = 'top';
+                else if (bottomPct > 40) posStr = 'middle';
+
+                const posLabel = document.getElementById(`posLabel_${currentDragIdx}`);
                 if (posLabel) {
-                    posLabel.textContent = `Vertical: ${posStr.toUpperCase()}`;
+                    posLabel.textContent = `Vertical: ${Math.round(bottomPct)}% (${posStr.toUpperCase()})`;
                 }
-            });
-            syncSubtitlePosition(posStr);
-        }
 
-        function syncSubtitlePosition(posVal) {
-            const sel = document.getElementById('subtitlePosition');
-            if (sel && sel.value !== posVal) {
-                sel.value = posVal;
+                syncSubtitlePosition(posStr);
             }
-            const reSel = document.getElementById('re_subtitlePosition');
-            if (reSel && reSel.value !== posVal) {
-                reSel.value = posVal;
+
+            function stopSubtitleDrag() {
+                isDraggingSub = false;
+                currentDragIdx = null;
+                document.removeEventListener('mousemove', handleSubtitleDrag);
+                document.removeEventListener('mouseup', stopSubtitleDrag);
+                document.removeEventListener('touchmove', handleSubtitleDrag);
+                document.removeEventListener('touchend', stopSubtitleDrag);
             }
-        }
 
-        // Subtitle rendering logic
-        const parsedSRTCache = {};
-        function parseSRTTime(timeStr) {
-            const [hms, ms] = timeStr.split(',');
-            const [h, m, s] = hms.split(':').map(Number);
-            return (h * 3600 + m * 60 + s) + (Number(ms) / 1000);
-        }
-
-        function initSubtitlesDirectly(video, srtData, index) {
-            if (parsedSRTCache[index]) return; // Already initialized
-            
-            // Normalize line endings
-            srtData = srtData.replace(/\r\n/g, '\n');
-            const lines = srtData.split('\n');
-            const subs = [];
-            
-            for (let line of lines) {
-                if (line.startsWith('Dialogue: ')) {
-                    const parts = line.substring(10).split(',');
-                    if (parts.length >= 5) {
-                        const startStr = parts[1];
-                        const endStr = parts[2];
-                        const textWithTags = parts.slice(4).join(',');
-                        // Strip ASS tags like {\c&H00FFFF&} for the plain text preview
-                        const text = textWithTags.replace(/\{.*?\}/g, '').trim();
-                        
-                        const parseTime = (t) => {
-                            const [hms, cs] = t.split('.');
-                            const [h, m, s] = hms.split(':').map(Number);
-                            return (h * 3600 + m * 60 + s) + (Number(cs || 0) / 100);
-                        };
-                        
-                        try {
-                            subs.push({
-                                start: parseTime(startStr),
-                                end: parseTime(endStr),
-                                text: text
-                            });
-                        } catch(e) {}
+            function setSubtitlePos(posStr) {
+                document.querySelectorAll('[id^="subtitleOverlay_"]').forEach((overlay, idx) => {
+                    if (posStr === 'top') {
+                        overlay.style.bottom = '80%';
+                    } else if (posStr === 'middle') {
+                        overlay.style.bottom = '50%';
+                    } else {
+                        overlay.style.bottom = '15%';
                     }
-                }
-            }
-            parsedSRTCache[index] = subs;
-            
-            // HTML overlay timeupdate disabled because subtitles are burned into the video by FFmpeg
-            video.addEventListener('timeupdate', () => {
-                const overlay = document.getElementById(`subtitleOverlay_${index}`);
-                if (overlay) {
-                    overlay.innerHTML = '';
-                }
-            });
-        }
-        
-        function updateLivePreviewStyles() {
-            const color = document.getElementById('re_subtitleColor').value;
-            const size = parseInt(document.getElementById('re_subtitleSize').value);
-            const opacity = parseInt(document.getElementById('re_subtitleOpacity').value);
-            
-            // Map hex &HBBGGRR to standard CSS hex
-            let cssColor = "#FFFF00";
-            if (color === "&H00FFFF") cssColor = "#FFFF00"; // Yellow
-            if (color === "&HFFFFFF") cssColor = "#FFFFFF"; // White
-            if (color === "&H00FF00") cssColor = "#00FF00"; // Green
-            if (color === "&H0000FF") cssColor = "#FF0000"; // Red
-            if (color === "&HFF0000") cssColor = "#0000FF"; // Blue
-            if (color === "&HFF00FF") cssColor = "#FF00FF"; // Purple
-            if (color === "&H00A5FF") cssColor = "#FFA500"; // Orange
-            if (color === "&HFFFF00") cssColor = "#00FFFF"; // Cyan
-            
-            // Map sizes
-            let cssSize = "1.2rem";
-            if (size === 9) cssSize = "0.9rem";
-            if (size === 14) cssSize = "1.5rem";
-            
-            document.querySelectorAll('[id^="subtitleOverlay_"]').forEach(el => {
-                el.style.setProperty('--sub-color', cssColor);
-                el.style.fontSize = cssSize;
-                el.style.fontFamily = "'Segoe UI Black', sans-serif";
-                el.style.opacity = (opacity / 100).toString();
-            });
-        }
-
-        let activeEventSource = null;
-
-        function connectJobSSE(jobId) {
-            if (activeEventSource) {
-                activeEventSource.close();
-            }
-            if (pollInterval) {
-                clearInterval(pollInterval);
-                pollInterval = null;
-            }
-
-            logToTerminal(`⚡ Real-Time SSE Stream connected for job: ${jobId}`, 'success');
-            activeEventSource = new EventSource(`/api/v1/clips/${jobId}/stream`);
-
-            activeEventSource.onmessage = function(event) {
-                try {
-                    const job = JSON.parse(event.data);
-                    if (job.error) {
-                        logToTerminal(job.error, 'error');
-                        activeEventSource.close();
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = '<span>Extract Viral Clip</span>';
-                        return;
+                    const posLabel = document.getElementById(`posLabel_${idx}`);
+                    if (posLabel) {
+                        posLabel.textContent = `Vertical: ${posStr.toUpperCase()}`;
                     }
+                });
+                syncSubtitlePosition(posStr);
+            }
 
-                    updateUI(job);
+            function syncSubtitlePosition(posVal) {
+                const sel = document.getElementById('subtitlePosition');
+                if (sel && sel.value !== posVal) {
+                    sel.value = posVal;
+                }
+                const reSel = document.getElementById('re_subtitlePosition');
+                if (reSel && reSel.value !== posVal) {
+                    reSel.value = posVal;
+                }
+            }
 
-                    if (job.status === 'COMPLETED' || job.status === 'FAILED') {
-                        activeEventSource.close();
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = '<span>Extract Viral Clip</span>';
-                        
-                        if (job.status === 'FAILED' && job.error_log) {
-                            logToTerminal(job.error_log, 'error');
+            // Subtitle rendering logic
+            const parsedSRTCache = {};
+            function parseSRTTime(timeStr) {
+                const [hms, ms] = timeStr.split(',');
+                const [h, m, s] = hms.split(':').map(Number);
+                return (h * 3600 + m * 60 + s) + (Number(ms) / 1000);
+            }
+
+            function initSubtitlesDirectly(video, srtData, index) {
+                if (parsedSRTCache[index]) return; // Already initialized
+
+                // Normalize line endings
+                srtData = srtData.replace(/\r\n/g, '\n');
+                const lines = srtData.split('\n');
+                const subs = [];
+
+                for (let line of lines) {
+                    if (line.startsWith('Dialogue: ')) {
+                        const parts = line.substring(10).split(',');
+                        if (parts.length >= 5) {
+                            const startStr = parts[1];
+                            const endStr = parts[2];
+                            const textWithTags = parts.slice(4).join(',');
+                            // Strip ASS tags like {\c&H00FFFF&} for the plain text preview
+                            const text = textWithTags.replace(/\{.*?\}/g, '').trim();
+
+                            const parseTime = (t) => {
+                                const [hms, cs] = t.split('.');
+                                const [h, m, s] = hms.split(':').map(Number);
+                                return (h * 3600 + m * 60 + s) + (Number(cs || 0) / 100);
+                            };
+
+                            try {
+                                subs.push({
+                                    start: parseTime(startStr),
+                                    end: parseTime(endStr),
+                                    text: text
+                                });
+                            } catch (e) { }
                         }
                     }
-                } catch(e) {
-                    console.error("SSE JSON Parse Error", e);
                 }
-            };
+                parsedSRTCache[index] = subs;
 
-            activeEventSource.onerror = function(err) {
-                console.warn("SSE Connection disconnected. Seamlessly switching to HTTP Polling...", err);
-                activeEventSource.close();
-                if (!pollInterval) {
-                    pollInterval = setInterval(pollJobStatus, 5000);
-                    pollJobStatus();
+                // HTML overlay timeupdate disabled because subtitles are burned into the video by FFmpeg
+                video.addEventListener('timeupdate', () => {
+                    const overlay = document.getElementById(`subtitleOverlay_${index}`);
+                    if (overlay) {
+                        overlay.innerHTML = '';
+                    }
+                });
+            }
+
+            function updateLivePreviewStyles() {
+                const color = document.getElementById('re_subtitleColor').value;
+                const size = parseInt(document.getElementById('re_subtitleSize').value);
+                const opacity = parseInt(document.getElementById('re_subtitleOpacity').value);
+
+                // Map hex &HBBGGRR to standard CSS hex
+                let cssColor = "#FFFF00";
+                if (color === "&H00FFFF") cssColor = "#FFFF00"; // Yellow
+                if (color === "&HFFFFFF") cssColor = "#FFFFFF"; // White
+                if (color === "&H00FF00") cssColor = "#00FF00"; // Green
+                if (color === "&H0000FF") cssColor = "#FF0000"; // Red
+                if (color === "&HFF0000") cssColor = "#0000FF"; // Blue
+                if (color === "&HFF00FF") cssColor = "#FF00FF"; // Purple
+                if (color === "&H00A5FF") cssColor = "#FFA500"; // Orange
+                if (color === "&HFFFF00") cssColor = "#00FFFF"; // Cyan
+
+                // Map sizes
+                let cssSize = "1.2rem";
+                if (size === 9) cssSize = "0.9rem";
+                if (size === 14) cssSize = "1.5rem";
+
+                document.querySelectorAll('[id^="subtitleOverlay_"]').forEach(el => {
+                    el.style.setProperty('--sub-color', cssColor);
+                    el.style.fontSize = cssSize;
+                    el.style.fontFamily = "'Segoe UI Black', sans-serif";
+                    el.style.opacity = (opacity / 100).toString();
+                });
+            }
+
+            let activeEventSource = null;
+
+            function connectJobSSE(jobId) {
+                if (activeEventSource) {
+                    activeEventSource.close();
                 }
-            };
-        }
+                if (pollInterval) {
+                    clearInterval(pollInterval);
+                    pollInterval = null;
+                }
 
-        async function uploadWatermarkFile(input) {
-            if (!input.files || !input.files[0]) return;
-            const formData = new FormData();
-            formData.append('file', input.files[0]);
-            try {
-                showToast("Uploading watermark logo...");
-                const res = await fetch('/api/v1/upload_watermark', { method: 'POST', body: formData });
-                if (!res.ok) throw new Error("Watermark upload failed");
-                const data = await res.json();
-                document.getElementById('watermarkPath').value = data.watermark_path;
-                showToast("✅ Watermark uploaded successfully!");
-                logToTerminal(`Watermark saved: ${data.filename}`, 'success');
-            } catch(e) {
-                showToast(`Watermark upload error: ${e.message}`);
-            }
-        }
+                logToTerminal(`⚡ Real-Time SSE Stream connected for job: ${jobId}`, 'success');
+                activeEventSource = new EventSource(`/api/v1/clips/${jobId}/stream`);
 
-        async function uploadFontFile(input) {
-            if (!input.files || !input.files[0]) return;
-            const formData = new FormData();
-            formData.append('file', input.files[0]);
-            try {
-                showToast("Uploading custom font...");
-                const res = await fetch('/api/v1/upload_font', { method: 'POST', body: formData });
-                if (!res.ok) throw new Error("Font upload failed");
-                const data = await res.json();
-                document.getElementById('fontPath').value = data.font_path;
-                showToast("✅ Custom Font uploaded successfully!");
-                logToTerminal(`Custom font saved: ${data.filename}`, 'success');
-            } catch(e) {
-                showToast(`Font upload error: ${e.message}`);
-            }
-        }
+                activeEventSource.onmessage = function (event) {
+                    try {
+                        const job = JSON.parse(event.data);
+                        if (job.error) {
+                            logToTerminal(job.error, 'error');
+                            activeEventSource.close();
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = '<span>Extract Viral Clip</span>';
+                            return;
+                        }
 
-        async function triggerRetrim(index) {
-            if (!currentJobId) return;
-            const startVal = document.getElementById(`trimStart_${index}`).value;
-            const endVal = document.getElementById(`trimEnd_${index}`).value;
-            
-            logToTerminal(`Re-trimming clip #${index+1} (${startVal} -> ${endVal})...`);
-            showToast(`✂️ Re-trimming clip #${index+1}...`);
-            
-            try {
-                const res = await fetch(`/api/v1/clips/${currentJobId}/retrim`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        clip_index: index,
-                        start_time: startVal,
-                        end_time: endVal
-                    })
-                });
-                
-                if (!res.ok) throw new Error('Failed to trigger re-trim');
-                
-                logToTerminal(`Re-trim processing started!`, 'success');
-                if (pollInterval) clearInterval(pollInterval);
-                connectJobSSE(currentJobId);
-            } catch(e) {
-                logToTerminal(`Re-trim Error: ${e.message}`, 'error');
-                showToast(`Re-trim failed: ${e.message}`);
-            }
-        }
+                        updateUI(job);
 
-        async function triggerRerender() {
-            if (!currentJobId) return;
-            
-            const color = document.getElementById('re_subtitleColor').value;
-            const size = parseInt(document.getElementById('re_subtitleSize').value);
-            const opacity = parseInt(document.getElementById('re_subtitleOpacity').value);
-            const karaoke = document.getElementById('re_wordKaraoke').checked;
-            
-            logToTerminal(`Triggering Re-Render with new settings...`);
-            
-            try {
-                const res = await fetch(`/api/v1/clips/${currentJobId}/rerender`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        subtitle_color: color,
-                        subtitle_size: size,
-                        subtitle_opacity: opacity,
-                        word_karaoke: karaoke
-                    })
-                });
-                
-                if (!res.ok) throw new Error('Failed to trigger re-render');
-                
-                logToTerminal(`Re-render started!`, 'success');
-                if (pollInterval) clearInterval(pollInterval);
-                connectJobSSE(currentJobId);
-                
-            } catch(e) {
-                logToTerminal(`Re-render Error: ${e.message}`, 'error');
-            }
-        }
+                        if (job.status === 'COMPLETED' || job.status === 'FAILED') {
+                            activeEventSource.close();
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = '<span>Extract Viral Clip</span>';
 
-        function safeVal(id, defaultVal = '') {
-            const el = document.getElementById(id);
-            return el ? el.value : defaultVal;
-        }
-        function safeCheck(id, defaultVal = false) {
-            const el = document.getElementById(id);
-            return el ? el.checked : defaultVal;
-        }
-        function safeInt(id, defaultVal = 3) {
-            const val = safeVal(id);
-            const parsed = parseInt(val, 10);
-            return isNaN(parsed) ? defaultVal : parsed;
-        }
+                            if (job.status === 'FAILED' && job.error_log) {
+                                logToTerminal(job.error_log, 'error');
+                            }
+                        }
+                    } catch (e) {
+                        console.error("SSE JSON Parse Error", e);
+                    }
+                };
 
-        if (form) {
-            form.addEventListener('submit', (e) => handleFormSubmit(e));
-        }
-
-        async function handleFormSubmit(e) {
-            if (e) e.preventDefault();
-
-            if (currentInputMode === 'upload' && !selectedLocalFile) {
-                showToast("Please drag & drop or select an MP4 video file first! ⚠️");
-                return;
+                activeEventSource.onerror = function (err) {
+                    console.warn("SSE Connection disconnected. Seamlessly switching to HTTP Polling...", err);
+                    activeEventSource.close();
+                    if (!pollInterval) {
+                        pollInterval = setInterval(pollJobStatus, 5000);
+                        pollJobStatus();
+                    }
+                };
             }
 
-            if (currentInputMode === 'url') {
-                const url = safeVal('url').trim();
-                if (!url) {
-                    showToast("Please enter a valid YouTube URL! ⚠️");
+            async function uploadWatermarkFile(input) {
+                if (!input.files || !input.files[0]) return;
+                const formData = new FormData();
+                formData.append('file', input.files[0]);
+                try {
+                    showToast("Uploading watermark logo...");
+                    const res = await fetch('/api/v1/upload_watermark', { method: 'POST', body: formData });
+                    if (!res.ok) throw new Error("Watermark upload failed");
+                    const data = await res.json();
+                    document.getElementById('watermarkPath').value = data.watermark_path;
+                    showToast("✅ Watermark uploaded successfully!");
+                    logToTerminal(`Watermark saved: ${data.filename}`, 'success');
+                } catch (e) {
+                    showToast(`Watermark upload error: ${e.message}`);
+                }
+            }
+
+            async function uploadFontFile(input) {
+                if (!input.files || !input.files[0]) return;
+                const formData = new FormData();
+                formData.append('file', input.files[0]);
+                try {
+                    showToast("Uploading custom font...");
+                    const res = await fetch('/api/v1/upload_font', { method: 'POST', body: formData });
+                    if (!res.ok) throw new Error("Font upload failed");
+                    const data = await res.json();
+                    document.getElementById('fontPath').value = data.font_path;
+                    showToast("✅ Custom Font uploaded successfully!");
+                    logToTerminal(`Custom font saved: ${data.filename}`, 'success');
+                } catch (e) {
+                    showToast(`Font upload error: ${e.message}`);
+                }
+            }
+
+            async function triggerRetrim(index) {
+                if (!currentJobId) return;
+                const startVal = document.getElementById(`trimStart_${index}`).value;
+                const endVal = document.getElementById(`trimEnd_${index}`).value;
+
+                logToTerminal(`Re-trimming clip #${index + 1} (${startVal} -> ${endVal})...`);
+                showToast(`✂️ Re-trimming clip #${index + 1}...`);
+
+                try {
+                    const res = await fetch(`/api/v1/clips/${currentJobId}/retrim`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            clip_index: index,
+                            start_time: startVal,
+                            end_time: endVal
+                        })
+                    });
+
+                    if (!res.ok) throw new Error('Failed to trigger re-trim');
+
+                    logToTerminal(`Re-trim processing started!`, 'success');
+                    if (pollInterval) clearInterval(pollInterval);
+                    connectJobSSE(currentJobId);
+                } catch (e) {
+                    logToTerminal(`Re-trim Error: ${e.message}`, 'error');
+                    showToast(`Re-trim failed: ${e.message}`);
+                }
+            }
+
+            async function triggerRerender() {
+                if (!currentJobId) return;
+
+                const color = document.getElementById('re_subtitleColor').value;
+                const size = parseInt(document.getElementById('re_subtitleSize').value);
+                const opacity = parseInt(document.getElementById('re_subtitleOpacity').value);
+                const karaoke = document.getElementById('re_wordKaraoke').checked;
+
+                logToTerminal(`Triggering Re-Render with new settings...`);
+
+                try {
+                    const res = await fetch(`/api/v1/clips/${currentJobId}/rerender`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            subtitle_color: color,
+                            subtitle_size: size,
+                            subtitle_opacity: opacity,
+                            word_karaoke: karaoke
+                        })
+                    });
+
+                    if (!res.ok) throw new Error('Failed to trigger re-render');
+
+                    logToTerminal(`Re-render started!`, 'success');
+                    if (pollInterval) clearInterval(pollInterval);
+                    connectJobSSE(currentJobId);
+
+                } catch (e) {
+                    logToTerminal(`Re-render Error: ${e.message}`, 'error');
+                }
+            }
+
+            function safeVal(id, defaultVal = '') {
+                const el = document.getElementById(id);
+                return el ? el.value : defaultVal;
+            }
+            function safeCheck(id, defaultVal = false) {
+                const el = document.getElementById(id);
+                return el ? el.checked : defaultVal;
+            }
+            function safeInt(id, defaultVal = 3) {
+                const val = safeVal(id);
+                const parsed = parseInt(val, 10);
+                return isNaN(parsed) ? defaultVal : parsed;
+            }
+
+            if (form) {
+                form.addEventListener('submit', (e) => handleFormSubmit(e));
+            }
+
+            async function handleFormSubmit(e) {
+                if (e) e.preventDefault();
+
+                if (currentInputMode === 'upload' && !selectedLocalFile) {
+                    showToast("Please drag & drop or select an MP4 video file first! ⚠️");
                     return;
                 }
-            }
 
-            if (terminal) terminal.innerHTML = '';
-            if (progressBar) {
-                progressBar.style.width = '0%';
-                progressBar.classList.remove('bg-rose-500');
-            }
-            
-            const clipsContainer = document.getElementById('clipsContainer');
-            if (clipsContainer) {
-                clipsContainer.innerHTML = `
+                if (currentInputMode === 'url') {
+                    const url = safeVal('url').trim();
+                    if (!url) {
+                        showToast("Please enter a valid YouTube URL! ⚠️");
+                        return;
+                    }
+                }
+
+                if (terminal) terminal.innerHTML = '';
+                if (progressBar) {
+                    progressBar.style.width = '0%';
+                    progressBar.classList.remove('bg-rose-500');
+                }
+
+                const clipsContainer = document.getElementById('clipsContainer');
+                if (clipsContainer) {
+                    clipsContainer.innerHTML = `
                 <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 flex items-center justify-center h-[500px] text-zinc-500 text-sm font-mono text-center">
                     <span class="animate-pulse">Analyzing video...</span>
                 </div>
                 `;
-            }
-            
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = `<span class="animate-spin h-4 w-4 border-2 border-zinc-950 border-t-transparent rounded-full"></span> <span>Processing...</span>`;
-            }
-
-            try {
-                let res;
-                if (currentInputMode === 'upload') {
-                    logToTerminal(`Uploading local video file: ${selectedLocalFile.name}...`);
-                    const formData = new FormData();
-                    formData.append('file', selectedLocalFile);
-                    formData.append('aspect_ratio', safeVal('aspectRatio', '9:16'));
-                    formData.append('crop_style', safeVal('cropStyle', 'center_crop'));
-                    formData.append('subtitle_color', safeVal('subtitleColor', '&H00FFFF'));
-                    formData.append('subtitle_size', safeInt('subtitleSize', 90));
-                    formData.append('subtitle_preset', safeVal('subtitlePreset', 'hormozi'));
-                    formData.append('subtitle_position', safeVal('subtitlePosition', 'bottom'));
-                    formData.append('target_language', safeVal('targetLanguage', 'id'));
-                    formData.append('watermark_position', safeVal('watermarkPosition', 'bottom_right'));
-                    formData.append('enable_sfx', safeCheck('enableSFX', true));
-                    formData.append('custom_prompt', safeVal('customPrompt', ''));
-                    formData.append('clip_count', safeInt('clipCount', 3));
-                    formData.append('auto_reframe', safeCheck('autoReframe', true));
-                    formData.append('word_karaoke', safeCheck('wordKaraoke', true));
-                    formData.append('bgm_ducking', safeCheck('bgmDucking', true));
-                    formData.append('layout_mode', safeVal('layoutMode', 'single'));
-                    formData.append('webhook_url', safeVal('webhookUrl', ''));
-                    formData.append('gemini_api_key', safeVal('geminiApiKey', ''));
-
-                    res = await fetch('/api/v1/upload', {
-                        method: 'POST',
-                        body: formData
-                    });
-                } else {
-                    const url = safeVal('url');
-                    logToTerminal(`Initializing new job for: ${url}`);
-                    res = await fetch('/api/v1/clips', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            youtube_url: url,
-                            aspect_ratio: safeVal('aspectRatio', '9:16'),
-                            crop_style: safeVal('cropStyle', 'center_crop'),
-                            subtitle_color: safeVal('subtitleColor', '&H00FFFF'),
-                            subtitle_size: safeInt('subtitleSize', 90),
-                            subtitle_preset: safeVal('subtitlePreset', 'hormozi'),
-                            subtitle_position: safeVal('subtitlePosition', 'bottom'),
-                            target_language: safeVal('targetLanguage', 'id'),
-                            watermark_position: safeVal('watermarkPosition', 'bottom_right'),
-                            enable_sfx: safeCheck('enableSFX', true),
-                            custom_prompt: safeVal('customPrompt', ''),
-                            clip_count: safeInt('clipCount', 3),
-                            auto_reframe: safeCheck('autoReframe', true),
-                            word_karaoke: safeCheck('wordKaraoke', true),
-                            bgm_ducking: safeCheck('bgmDucking', true),
-                            layout_mode: safeVal('layoutMode', 'single'),
-                            webhook_url: safeVal('webhookUrl', ''),
-                            gemini_api_key: safeVal('geminiApiKey', '')
-                        })
-                    });
                 }
 
-                if (!res.ok) throw new Error('API Error');
-                
-                const data = await res.json();
-                currentJobId = data.job_id;
-                
-                if (data.job_ids && data.job_ids.length > 1) {
-                    logToTerminal(`🚀 Batch Mode: ${data.job_ids.length} Jobs Created Simultaneously! Active ID: ${currentJobId}`, 'success');
-                    showToast(`⚡ Batch Processing Started! ${data.job_ids.length} Videos Enqueued.`);
-                } else {
-                    logToTerminal(`Job created. ID: ${currentJobId}`, 'success');
-                }
-                
-                if (pollInterval) clearInterval(pollInterval);
-                connectJobSSE(currentJobId);
-
-            } catch (err) {
-                logToTerminal(`Failed to create job: ${err.message}`, 'error');
                 if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<span>Extract Viral Clip</span>';
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = `<span class="animate-spin h-4 w-4 border-2 border-zinc-950 border-t-transparent rounded-full"></span> <span>Processing...</span>`;
+                }
+
+                try {
+                    let res;
+                    if (currentInputMode === 'upload') {
+                        logToTerminal(`Uploading local video file: ${selectedLocalFile.name}...`);
+                        const formData = new FormData();
+                        formData.append('file', selectedLocalFile);
+                        formData.append('aspect_ratio', safeVal('aspectRatio', '9:16'));
+                        formData.append('crop_style', safeVal('cropStyle', 'center_crop'));
+                        formData.append('subtitle_color', safeVal('subtitleColor', '&H00FFFF'));
+                        formData.append('subtitle_size', safeInt('subtitleSize', 90));
+                        formData.append('subtitle_preset', safeVal('subtitlePreset', 'hormozi'));
+                        formData.append('subtitle_position', safeVal('subtitlePosition', 'bottom'));
+                        formData.append('target_language', safeVal('targetLanguage', 'id'));
+                        formData.append('watermark_position', safeVal('watermarkPosition', 'bottom_right'));
+                        formData.append('enable_sfx', safeCheck('enableSFX', true));
+                        formData.append('custom_prompt', safeVal('customPrompt', ''));
+                        formData.append('clip_count', safeInt('clipCount', 3));
+                        formData.append('auto_reframe', safeCheck('autoReframe', true));
+                        formData.append('word_karaoke', safeCheck('wordKaraoke', true));
+                        formData.append('bgm_ducking', safeCheck('bgmDucking', true));
+                        formData.append('layout_mode', safeVal('layoutMode', 'single'));
+                        formData.append('webhook_url', safeVal('webhookUrl', ''));
+                        formData.append('gemini_api_key', safeVal('geminiApiKey', ''));
+
+                        res = await fetch('/api/v1/upload', {
+                            method: 'POST',
+                            body: formData
+                        });
+                    } else {
+                        const url = safeVal('url');
+                        logToTerminal(`Initializing new job for: ${url}`);
+                        res = await fetch('/api/v1/clips', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                youtube_url: url,
+                                aspect_ratio: safeVal('aspectRatio', '9:16'),
+                                crop_style: safeVal('cropStyle', 'center_crop'),
+                                subtitle_color: safeVal('subtitleColor', '&H00FFFF'),
+                                subtitle_size: safeInt('subtitleSize', 90),
+                                subtitle_preset: safeVal('subtitlePreset', 'hormozi'),
+                                subtitle_position: safeVal('subtitlePosition', 'bottom'),
+                                target_language: safeVal('targetLanguage', 'id'),
+                                watermark_position: safeVal('watermarkPosition', 'bottom_right'),
+                                enable_sfx: safeCheck('enableSFX', true),
+                                custom_prompt: safeVal('customPrompt', ''),
+                                clip_count: safeInt('clipCount', 3),
+                                auto_reframe: safeCheck('autoReframe', true),
+                                word_karaoke: safeCheck('wordKaraoke', true),
+                                bgm_ducking: safeCheck('bgmDucking', true),
+                                layout_mode: safeVal('layoutMode', 'single'),
+                                webhook_url: safeVal('webhookUrl', ''),
+                                gemini_api_key: safeVal('geminiApiKey', '')
+                            })
+                        });
+                    }
+
+                    if (!res.ok) throw new Error('API Error');
+
+                    const data = await res.json();
+                    currentJobId = data.job_id;
+
+                    if (data.job_ids && data.job_ids.length > 1) {
+                        logToTerminal(`🚀 Batch Mode: ${data.job_ids.length} Jobs Created Simultaneously! Active ID: ${currentJobId}`, 'success');
+                        showToast(`⚡ Batch Processing Started! ${data.job_ids.length} Videos Enqueued.`);
+                    } else {
+                        logToTerminal(`Job created. ID: ${currentJobId}`, 'success');
+                    }
+
+                    if (pollInterval) clearInterval(pollInterval);
+                    connectJobSSE(currentJobId);
+
+                } catch (err) {
+                    logToTerminal(`Failed to create job: ${err.message}`, 'error');
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<span>Extract Viral Clip</span>';
+                    }
                 }
             }
-        }
 
-        function openPromptModal() {
-            const val = document.getElementById('customPrompt').value || '';
-            document.getElementById('modalCustomPrompt').value = val;
-            const modal = document.getElementById('promptModal');
-            modal.style.display = 'flex';
-        }
-
-        function closePromptModal() {
-            const modal = document.getElementById('promptModal');
-            modal.style.display = 'none';
-        }
-
-        function savePromptFromModal() {
-            const textVal = document.getElementById('modalCustomPrompt').value;
-            document.getElementById('customPrompt').value = textVal;
-            closePromptModal();
-            showToast("✅ AI Director Prompt disalin ke form!");
-            logToTerminal(`AI Director Prompt updated (${textVal.length} chars)`, 'success');
-        }
-
-        function insertPromptPreset(presetText) {
-            const textarea = document.getElementById('modalCustomPrompt');
-            if (textarea.value.trim().length > 0) {
-                textarea.value = textarea.value.trim() + "\n" + presetText;
-            } else {
-                textarea.value = presetText;
+            function openPromptModal() {
+                const val = document.getElementById('customPrompt').value || '';
+                document.getElementById('modalCustomPrompt').value = val;
+                const modal = document.getElementById('promptModal');
+                modal.style.display = 'flex';
             }
-        }
+
+            function closePromptModal() {
+                const modal = document.getElementById('promptModal');
+                modal.style.display = 'none';
+            }
+
+            function savePromptFromModal() {
+                const textVal = document.getElementById('modalCustomPrompt').value;
+                document.getElementById('customPrompt').value = textVal;
+                closePromptModal();
+                showToast("✅ AI Director Prompt disalin ke form!");
+                logToTerminal(`AI Director Prompt updated (${textVal.length} chars)`, 'success');
+            }
+
+            function insertPromptPreset(presetText) {
+                const textarea = document.getElementById('modalCustomPrompt');
+                if (textarea.value.trim().length > 0) {
+                    textarea.value = textarea.value.trim() + "\n" + presetText;
+                } else {
+                    textarea.value = presetText;
+                }
+            }
     </script>
 
     <!-- AI Director Fullscreen/Popup Editor Modal -->
-    <div id="promptModal" style="display: none;" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[99999] flex items-center justify-center p-4">
-        <div class="bg-zinc-950 border border-zinc-800 rounded-xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+    <div id="promptModal" style="display: none;"
+        class="fixed inset-0 bg-black/80 backdrop-blur-md z-[99999] flex items-center justify-center p-4">
+        <div
+            class="bg-zinc-950 border border-zinc-800 rounded-xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
             <div class="p-4 border-b border-zinc-800/80 flex items-center justify-between bg-zinc-900/50">
                 <div class="flex items-center gap-2">
                     <span class="text-lg">🤖</span>
                     <div>
                         <h3 class="text-sm font-bold text-zinc-100">AI Director Advanced Prompt Editor</h3>
-                        <p class="text-[11px] text-zinc-400">Tulis arahan detail & spesifik untuk Gemini AI memotong klip viral Anda</p>
+                        <p class="text-[11px] text-zinc-400">Tulis arahan detail & spesifik untuk Gemini AI memotong
+                            klip viral Anda</p>
                     </div>
                 </div>
-                <button type="button" onclick="closePromptModal()" class="text-zinc-400 hover:text-white text-lg px-2">✕</button>
+                <button type="button" onclick="closePromptModal()"
+                    class="text-zinc-400 hover:text-white text-lg px-2">✕</button>
             </div>
 
             <div class="p-4 space-y-3 overflow-y-auto flex-1">
                 <!-- Preset Quick Buttons -->
                 <div>
-                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider block mb-1.5 font-mono">⚡ Quick Presets (Klik untuk sisipkan)</label>
+                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider block mb-1.5 font-mono">⚡ Quick
+                        Presets (Klik untuk sisipkan)</label>
                     <div class="flex flex-wrap gap-1.5 text-xs">
-                        <button type="button" onclick="insertPromptPreset('Cari 3 momen paling lucu atau lelucon yang bikin tertawa lepas.')" class="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded text-[11px] transition">
+                        <button type="button"
+                            onclick="insertPromptPreset('Cari 3 momen paling lucu atau lelucon yang bikin tertawa lepas.')"
+                            class="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded text-[11px] transition">
                             🎭 Momen Lucu
                         </button>
-                        <button type="button" onclick="insertPromptPreset('Fokus pada tips praktis, strategi bisnis, dan cara menghasilkan uang.')" class="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded text-[11px] transition">
+                        <button type="button"
+                            onclick="insertPromptPreset('Fokus pada tips praktis, strategi bisnis, dan cara menghasilkan uang.')"
+                            class="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded text-[11px] transition">
                             💰 Tips Bisnis
                         </button>
-                        <button type="button" onclick="insertPromptPreset('Ekstrak bagian debat paling emosional, pertanyaan provokatif, dan klip yang memicu perdebatan di kolom komentar.')" class="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded text-[11px] transition">
+                        <button type="button"
+                            onclick="insertPromptPreset('Ekstrak bagian debat paling emosional, pertanyaan provokatif, dan klip yang memicu perdebatan di kolom komentar.')"
+                            class="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded text-[11px] transition">
                             🔥 Debat & Provokatif
                         </button>
-                        <button type="button" onclick="insertPromptPreset('Wajib gunakan hashtag berikut: #flashpeak #flashpeakmotion #motionklip #ezklip')" class="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded text-[11px] transition">
+                        <button type="button"
+                            onclick="insertPromptPreset('Wajib gunakan hashtag berikut: #flashpeak #flashpeakmotion #motionklip #ezklip')"
+                            class="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded text-[11px] transition">
                             🏷️ Brand Hashtags (#flashpeak ...)
                         </button>
                     </div>
                 </div>
 
                 <div>
-                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider block mb-1 font-mono">📝 Multi-Line Prompt Editor (Tulis Panjang Bebas)</label>
+                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider block mb-1 font-mono">📝 Multi-Line
+                        Prompt Editor (Tulis Panjang Bebas)</label>
                     <textarea id="modalCustomPrompt" rows="8" placeholder="Tulis instruksi lengkap Anda di sini... Misal:
 - Cari momen pembicara membahas topik AI.
 - Buat judul yang sangat clickbait tentang masa depan pekerjaan.
-- Wajib sertakan hashtag #flashpeak #motionklip..." class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-xs text-zinc-200 focus:outline-none focus:border-emerald-500 font-mono leading-relaxed placeholder-zinc-700 resize-y"></textarea>
+- Wajib sertakan hashtag #flashpeak #motionklip..."
+                        class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-xs text-zinc-200 focus:outline-none focus:border-emerald-500 font-mono leading-relaxed placeholder-zinc-700 resize-y"></textarea>
                 </div>
             </div>
 
             <div class="p-3 border-t border-zinc-800/80 bg-zinc-900/50 flex justify-end gap-2">
-                <button type="button" onclick="closePromptModal()" class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-semibold rounded-lg transition">Batal</button>
-                <button type="button" onclick="savePromptFromModal()" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-bold rounded-lg shadow-lg shadow-emerald-500/20 transition">💾 Simpan & Gunakan Prompt</button>
+                <button type="button" onclick="closePromptModal()"
+                    class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-semibold rounded-lg transition">Batal</button>
+                <button type="button" onclick="savePromptFromModal()"
+                    class="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-bold rounded-lg shadow-lg shadow-emerald-500/20 transition">💾
+                    Simpan & Gunakan Prompt</button>
             </div>
         </div>
     </div>
 </body>
+
+</html>
+
 </html>
