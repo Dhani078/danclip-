@@ -47,9 +47,9 @@ async def analyze_video(video_path: str, custom_prompt: str = "", clip_count: in
             f"- `tiktok_titles`: Buat 3 VARIASI JUDUL UNIK khusus algoritma TikTok (gaya memancing rasa penasaran / klik).\n"
             f"- `reels_titles`: Buat 3 VARIASI JUDUL UNIK khusus algoritma Instagram Reels (gaya estetis / storytelling).\n"
             f"- `shorts_titles`: Buat 3 VARIASI JUDUL UNIK khusus algoritma YouTube Shorts (gaya to-the-point & tajam).\n"
-            f"- `tiktok_hashtags`: WAJIB diawali dengan #flashpeak #flashpeakmotion #motionklip #ezklip disusul hashtag topik relevan.\n"
-            f"- `reels_hashtags`: WAJIB diawali dengan #flashpeak #flashpeakmotion #motionklip #ezklip disusul hashtag topik relevan.\n"
-            f"- `shorts_hashtags`: WAJIB diawali dengan #flashpeak #flashpeakmotion #motionklip #ezklip disusul hashtag topik relevan.\n"
+            f"- `tiktok_hashtags`: List 5+ hashtag spesifik TikTok (#fyp #viral + hashtag topik relevan).\n"
+            f"- `reels_hashtags`: List 5+ hashtag spesifik Instagram Reels (#reels #explore + hashtag topik relevan).\n"
+            f"- `shorts_hashtags`: List 5+ hashtag spesifik YouTube Shorts (#shorts #trending + hashtag topik relevan).\n"
             f"- `tiktok_caption`: Buat caption khas TikToker pro yang interaktif dengan hook emosional & pertanyaan pemicu komentar.\n"
             f"- `reels_caption`: Caption Instagram Reels (estetis, naratif bercerita, paragraf rapi & hashtag relevan).\n"
             f"- `shorts_caption`: Caption YouTube Shorts (singkat, padat, gaya judul tajam & #shorts).\n\n"
@@ -113,17 +113,6 @@ async def analyze_video(video_path: str, custom_prompt: str = "", clip_count: in
             text = text[3:-3].strip()
             
         data = json.loads(text)
-        
-        # Enforce mandatory brand hashtags at the beginning of all hashtag lists
-        mandatory_tags = ["#flashpeak", "#flashpeakmotion", "#motionklip", "#ezklip"]
-        if "clips" in data and isinstance(data["clips"], list):
-            for clip in data["clips"]:
-                for field in ["tiktok_hashtags", "reels_hashtags", "shorts_hashtags", "hashtags"]:
-                    existing = clip.get(field) or []
-                    if isinstance(existing, list):
-                        combined = mandatory_tags + [t for t in existing if t.lower() not in [m.lower() for m in mandatory_tags]]
-                        clip[field] = combined
-                        
         return GeminiAnalysisSchema(**data)
     except Exception as e:
         raise Exception(f"Gemini API Error: {str(e)}")
