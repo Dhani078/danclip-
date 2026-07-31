@@ -812,9 +812,8 @@
             }).catch(err => {
                 showToast(`Gagal menyalin: ${err}`);
             });
-        }
 
-        // Interactive Subtitle Drag & Position Editor Logic
+            // Interactive Subtitle Drag & Position Editor Logic
             let isDraggingSub = false;
             let currentDragIdx = null;
 
@@ -980,6 +979,28 @@
 
             let activeEventSource = null;
 
+            async function pollJobStatus() {
+                if (!currentJobId) return;
+                try {
+                    const res = await fetch(`/api/v1/clips/${currentJobId}`);
+                    if (!res.ok) return;
+                    const job = await res.json();
+                    updateUI(job);
+                    if (job.status === 'COMPLETED' || job.status === 'FAILED') {
+                        if (pollInterval) {
+                            clearInterval(pollInterval);
+                            pollInterval = null;
+                        }
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = '<span>Extract Viral Clip</span>';
+                        }
+                    }
+                } catch (e) {
+                    console.error("Polling error:", e);
+                }
+            }
+
             function connectJobSSE(jobId) {
                 if (activeEventSource) {
                     activeEventSource.close();
@@ -1023,7 +1044,7 @@
                     console.warn("SSE Connection disconnected. Seamlessly switching to HTTP Polling...", err);
                     activeEventSource.close();
                     if (!pollInterval) {
-                        pollInterval = setInterval(pollJobStatus, 5000);
+                        pollInterval = setInterval(pollJobStatus, 3000);
                         pollJobStatus();
                     }
                 };
