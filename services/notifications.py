@@ -280,7 +280,7 @@ async def start_telegram_bot_listener(bot_token: str = "8870492783:AAFLR7nuio7fa
                                                 
                                                 res = await publish_video_to_tiktok(
                                                     video_file,
-                                                    access_token="act.qoc3JAzMofeJR16RpGvdwIUSUFfRVdPzBnvE3Cpr6n99YXaqhTshtwXRc1aC!5175.s1",
+                                                    access_token=settings.TIKTOK_ACCESS_TOKEN,
                                                     title=caption,
                                                     privacy_level="PUBLIC_TO_EVERYONE" if mode == "direct" else "SELF_ONLY",
                                                     post_mode=mode
@@ -290,7 +290,7 @@ async def start_telegram_bot_listener(bot_token: str = "8870492783:AAFLR7nuio7fa
                                                 if res.get("status") == "error" and mode == "direct":
                                                     res = await publish_video_to_tiktok(
                                                         video_file,
-                                                        access_token="act.qoc3JAzMofeJR16RpGvdwIUSUFfRVdPzBnvE3Cpr6n99YXaqhTshtwXRc1aC!5175.s1",
+                                                        access_token=settings.TIKTOK_ACCESS_TOKEN,
                                                         title=caption,
                                                         privacy_level="SELF_ONLY",
                                                         post_mode="inbox"

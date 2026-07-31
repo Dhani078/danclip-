@@ -95,6 +95,8 @@ async def process_video_pipeline(job_id: str):
             
             if os.path.exists(raw_video_path):
                 print(f"[Pipeline] Local video file already uploaded: {raw_video_path}. Skipping yt-dlp download.")
+                title = job.video_title or 'Local Video'
+                duration = job.duration_seconds or 0
             else:
                 cmd = [
                     "python", "-m", "yt_dlp",
@@ -148,10 +150,6 @@ async def process_video_pipeline(job_id: str):
                 except Exception:
                     title = 'Local Video'
                     duration = 0
-                    
-                job.video_title = title
-                job.duration_seconds = duration
-                await session.commit()
                 
             job.video_title = title
             job.duration_seconds = duration
@@ -455,7 +453,7 @@ async def stream_clip_progress(job_id: str):
                 yield f"data: {err_data}\n\n"
                 break
 
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(1.0)
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
