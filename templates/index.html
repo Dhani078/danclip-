@@ -624,6 +624,57 @@
             });
         }
 
+        let activeEventSource = null;
+
+        function connectJobSSE(jobId) {
+            if (activeEventSource) {
+                activeEventSource.close();
+            }
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+
+            logToTerminal(`⚡ Real-Time SSE Stream connected for job: ${jobId}`, 'success');
+            activeEventSource = new EventSource(`/api/v1/clips/${jobId}/stream`);
+
+            activeEventSource.onmessage = function(event) {
+                try {
+                    const job = JSON.parse(event.data);
+                    if (job.error) {
+                        logToTerminal(job.error, 'error');
+                        activeEventSource.close();
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<span>Extract Viral Clip</span>';
+                        return;
+                    }
+
+                    updateUI(job);
+
+                    if (job.status === 'COMPLETED' || job.status === 'FAILED') {
+                        activeEventSource.close();
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<span>Extract Viral Clip</span>';
+                        
+                        if (job.status === 'FAILED' && job.error_log) {
+                            logToTerminal(job.error_log, 'error');
+                        }
+                    }
+                } catch(e) {
+                    console.error("SSE JSON Parse Error", e);
+                }
+            };
+
+            activeEventSource.onerror = function(err) {
+                console.warn("SSE Connection disconnected. Seamlessly switching to HTTP Polling...", err);
+                activeEventSource.close();
+                if (!pollInterval) {
+                    pollInterval = setInterval(pollJobStatus, 5000);
+                    pollJobStatus();
+                }
+            };
+        }
+
         async function pollJobStatus() {
             if (!currentJobId) return;
 
@@ -675,8 +726,7 @@
                 
                 logToTerminal(`Re-render started!`, 'success');
                 if (pollInterval) clearInterval(pollInterval);
-                pollInterval = setInterval(pollJobStatus, 5000);
-                pollJobStatus();
+                connectJobSSE(currentJobId);
                 
             } catch(e) {
                 logToTerminal(`Re-render Error: ${e.message}`, 'error');
@@ -766,8 +816,7 @@
                 logToTerminal(`Job created. ID: ${currentJobId}`, 'success');
                 
                 if (pollInterval) clearInterval(pollInterval);
-                pollInterval = setInterval(pollJobStatus, 5000);
-                pollJobStatus();
+                connectJobSSE(currentJobId);
 
             } catch (err) {
                 logToTerminal(`Failed to create job: ${err.message}`, 'error');

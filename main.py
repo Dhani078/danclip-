@@ -1,5 +1,5 @@
 from fastapi import FastAPI, BackgroundTasks, Depends, Request, HTTPException, UploadFile, File, Form
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,7 +21,7 @@ import httpx
 _job_semaphore = asyncio.Semaphore(1)
 
 from config import settings
-from database import init_db, get_db
+from database import init_db, get_db, AsyncSessionLocal
 from models import VideoJob, JobStatus
 from schemas import ClipRequest, ClipResponse, VideoJobDetail
 from services.gemini import analyze_video
@@ -380,6 +380,56 @@ async def get_clip(job_id: str, db: AsyncSession = Depends(get_db)):
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     return job
+
+
+@app.get("/api/v1/clips/{job_id}/stream")
+async def stream_clip_progress(job_id: str):
+    """
+    Server-Sent Events (SSE) endpoint for real-time progress streaming.
+    Streams job status, progress percentage, and step messages instantly.
+    """
+    async def event_generator():
+        last_state = None
+        while True:
+            try:
+                async with AsyncSessionLocal() as session:
+                    job = await session.get(VideoJob, job_id)
+                    if not job:
+                        err_payload = json.dumps({"error": "Job not found", "status": "FAILED"})
+                        yield f"data: {err_payload}\n\n"
+                        break
+
+                    status_str = str(job.status.value) if hasattr(job.status, "value") else str(job.status)
+                    current_state = (status_str, job.progress_percentage, job.current_step_message, job.clips_json)
+
+                    if current_state != last_state:
+                        payload = {
+                            "id": job.id,
+                            "youtube_url": job.youtube_url,
+                            "video_title": job.video_title,
+                            "aspect_ratio": job.aspect_ratio,
+                            "subtitle_color": job.subtitle_color,
+                            "subtitle_size": job.subtitle_size,
+                            "status": status_str,
+                            "progress_percentage": job.progress_percentage,
+                            "current_step_message": job.current_step_message or "",
+                            "clips_json": job.clips_json or "",
+                            "output_video_path": job.output_video_path or "",
+                            "error_log": job.error_log or ""
+                        }
+                        yield f"data: {json.dumps(payload)}\n\n"
+                        last_state = current_state
+
+                    if status_str in ["COMPLETED", "FAILED"]:
+                        break
+            except Exception as e:
+                err_data = json.dumps({"error": str(e), "status": "FAILED"})
+                yield f"data: {err_data}\n\n"
+                break
+
+            await asyncio.sleep(0.5)
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
