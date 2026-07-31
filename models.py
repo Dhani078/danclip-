@@ -34,6 +34,7 @@ class VideoJob(Base):
     subtitle_size = Column(Integer, default=90)
     subtitle_preset = Column(String(50), default="hormozi")
     subtitle_position = Column(String(20), default="bottom")
+    target_language = Column(String(10), default="id")
     crop_style = Column(String(20), default="center_crop")
     
     # New Opus-Clip Pro Features

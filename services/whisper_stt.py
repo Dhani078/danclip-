@@ -149,19 +149,21 @@ def apply_multicolor_highlight(clean_word: str, default_color: str = "&H00FFFFFF
     return f"{{\\c{default_color}}}{clean_word}"
 
 
-def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100, sub_color: str = "&H00FFFFFF", word_karaoke: bool = False, hook_title: str = "", subtitle_preset: str = "hormozi", subtitle_position: str = "bottom") -> str:
+def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100, sub_color: str = "&H00FFFFFF", word_karaoke: bool = False, hook_title: str = "", subtitle_preset: str = "hormozi", subtitle_position: str = "bottom", target_language: str = "id") -> str:
     """
     Transcribe audio file to ASS format using Whisper.
-    Supports Preset Subtitle Styles and Dynamic Vertical Positioning:
-    - 'subtitle_position': 'bottom' (MarginV=320), 'middle'/'center' (MarginV=960), 'top' (MarginV=1500), or numeric offset.
+    Supports Preset Subtitle Styles, Dynamic Vertical Positioning, and Multi-Language Translation.
+    - 'target_language': 'id' (Original/Indonesian), 'en' (Auto-Translate to English), etc.
     """
     model = get_whisper_model()
     
     initial_prompt = "Berikut adalah percakapan bahasa Indonesia yang bercampur dengan bahasa Inggris (mixed language). It is a very cool podcast."
+    whisper_task = "translate" if target_language == "en" else "transcribe"
     
     segments, info = model.transcribe(
         audio_path,
         language=language,
+        task=whisper_task,
         initial_prompt=initial_prompt,
         beam_size=5,
         word_timestamps=True,
@@ -325,7 +327,7 @@ def format_ass_time(seconds: float) -> str:
     return f"{hours}:{minutes:02d}:{secs:02d}.{cs:02d}"
 
 
-async def generate_whisper_srt(input_video: str, start_time: str, end_time: str, temp_dir: str, clip_id: str, sub_size: int = 100, sub_color: str = "&H00FFFFFF", word_karaoke: bool = False, hook_title: str = "", subtitle_preset: str = "hormozi", subtitle_position: str = "bottom") -> str:
+async def generate_whisper_srt(input_video: str, start_time: str, end_time: str, temp_dir: str, clip_id: str, sub_size: int = 100, sub_color: str = "&H00FFFFFF", word_karaoke: bool = False, hook_title: str = "", subtitle_preset: str = "hormozi", subtitle_position: str = "bottom", target_language: str = "id") -> str:
     """
     Full pipeline: extract clip audio -> transcribe with Whisper -> return ASS string.
     All timestamps in the returned ASS are relative to clip start (00:00:00).
@@ -338,8 +340,8 @@ async def generate_whisper_srt(input_video: str, start_time: str, end_time: str,
         if not success:
             return ""
             
-        # Step 2: Transcribe (ASS format with preset styles, vertical positioning & multi-color highlighting)
-        ass_content = await asyncio.to_thread(transcribe_to_ass, audio_path, "id", sub_size, sub_color, word_karaoke, hook_title, subtitle_preset, subtitle_position)
+        # Step 2: Transcribe (ASS format with preset styles, vertical positioning, translation & multi-color highlighting)
+        ass_content = await asyncio.to_thread(transcribe_to_ass, audio_path, None, sub_size, sub_color, word_karaoke, hook_title, subtitle_preset, subtitle_position, target_language)
         return ass_content
     except Exception as e:
         print(f"[Whisper STT Error] {e}")
