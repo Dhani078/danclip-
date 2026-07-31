@@ -1054,11 +1054,6 @@
             return isNaN(parsed) ? defaultVal : parsed;
         }
 
-        const form = document.getElementById('clipForm');
-        const submitBtn = document.getElementById('submitBtn');
-        const terminal = document.getElementById('terminal');
-        const progressBar = document.getElementById('progressBar');
-
         if (form) {
             form.addEventListener('submit', (e) => handleFormSubmit(e));
         }
