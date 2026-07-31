@@ -223,37 +223,99 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
             f"[bg][fg]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2[v]"
         )
     
+    watermark_path = settings.get("watermark_path", None)
+    watermark_pos = settings.get("watermark_position", "top_right")
+    enable_sfx = settings.get("enable_sfx", True)
+    custom_font_path = settings.get("custom_font_path", None)
+    
+    input_count = 1
+    extra_inputs = []
+    
+    # 1. Custom Watermark Input
+    has_watermark = watermark_path and os.path.exists(watermark_path)
+    watermark_input_idx = None
+    if has_watermark:
+        watermark_input_idx = input_count
+        extra_inputs.extend(["-i", watermark_path])
+        input_count += 1
+        
+    # 2. BGM Input
+    bgm_input_idx = None
+    if has_bgm:
+        bgm_input_idx = input_count
+        extra_inputs.extend(["-stream_loop", "-1", "-i", bgm_path])
+        input_count += 1
+
+    # 3. SFX Pop Input
+    sfx_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "pop.wav")
+    has_sfx = enable_sfx and os.path.exists(sfx_path)
+    sfx_input_idx = None
+    if has_sfx:
+        sfx_input_idx = input_count
+        extra_inputs.extend(["-i", sfx_path])
+        input_count += 1
+
+    # Subtitle ASS Burn
+    v_current = "[v]"
     if subtitle_path and burn_subtitles and os.path.exists(subtitle_path):
         ass_path_escaped = subtitle_path.replace('\\', '/')
-        sub_filter = f"[v]ass='{ass_path_escaped}'[v2]"
+        if custom_font_path and os.path.exists(custom_font_path):
+            fonts_dir = os.path.dirname(custom_font_path).replace('\\', '/')
+            sub_filter = f"{v_current}ass='{ass_path_escaped}':fontsdir='{fonts_dir}'[v_sub]"
+        else:
+            sub_filter = f"{v_current}ass='{ass_path_escaped}'[v_sub]"
         filter_complex += f";{sub_filter}"
-        map_v = "[v2]"
-    else:
-        map_v = "[v]"
+        v_current = "[v_sub]"
         
+    # Watermark Filter Overlay
+    if has_watermark:
+        w_pos_expr = "x=main_w-overlay_w-30:y=30" # top_right
+        if watermark_pos == "top_left":
+            w_pos_expr = "x=30:y=30"
+        elif watermark_pos == "bottom_right":
+            w_pos_expr = "x=main_w-overlay_w-30:y=main_h-overlay_h-30"
+        elif watermark_pos == "bottom_left":
+            w_pos_expr = "x=30:y=main_h-overlay_h-30"
+            
+        wm_filter = f"[{watermark_input_idx}:v]scale=160:-1[wm];{v_current}[wm]overlay={w_pos_expr}[v_wm]"
+        filter_complex += f";{wm_filter}"
+        v_current = "[v_wm]"
+
+    map_v = v_current
     map_a = "[a_out]"
-    if has_bgm:
-        # BGM ducking using sidechaincompress + Broadcast EBU R128 Loudness Normalization (-16 LUFS for TikTok/Reels)
-        audio_filter = (
-            ";[1:a]volume=0.3[bgm_vol];"
-            "[0:a]asplit[a_main][a_side];"
-            "[bgm_vol][a_side]sidechaincompress=threshold=0.08:ratio=10:attack=100:release=1000[bgm_ducked];"
-            "[a_main][bgm_ducked]amix=inputs=2:duration=first:dropout_transition=2,loudnorm=I=-16:TP=-1.5:LRA=11:linear=true[a_out]"
-        )
-        filter_complex += audio_filter
-    else:
-        # Professional Broadcast EBU R128 Loudness Normalization (-16 LUFS for TikTok/Reels)
-        audio_filter = ";[0:a]loudnorm=I=-16:TP=-1.5:LRA=11:linear=true[a_out]"
-        filter_complex += audio_filter
     
+    # Audio Pipeline with Optional BGM, SFX Pop, and Loudnorm
+    audio_parts = []
+    if has_sfx:
+        # Delay SFX pop sound by 200ms
+        audio_parts.append(f"[{sfx_input_idx}:a]adelay=200|200[sfx_delayed]")
+        audio_parts.append("[0:a][sfx_delayed]amix=inputs=2:duration=first[a_main_sfx]")
+        main_a_source = "[a_main_sfx]"
+    else:
+        main_a_source = "[0:a]"
+
+    if has_bgm:
+        audio_filter = (
+            f";{main_a_source}asplit[a_main_sp][a_side];"
+            f"[{bgm_input_idx}:a]volume=0.25[bgm_vol];"
+            "[bgm_vol][a_side]sidechaincompress=threshold=0.08:ratio=10:attack=100:release=1000[bgm_ducked];"
+            "[a_main_sp][bgm_ducked]amix=inputs=2:duration=first:dropout_transition=2,loudnorm=I=-16:TP=-1.5:LRA=11:linear=true[a_out]"
+        )
+    else:
+        audio_filter = f";{main_a_source}loudnorm=I=-16:TP=-1.5:LRA=11:linear=true[a_out]"
+
+    if audio_parts:
+        filter_complex += ";" + ";".join(audio_parts) + audio_filter
+    else:
+        filter_complex += audio_filter
+
     cmd = [
         "ffmpeg", "-y",
         "-ss", str(t1),
         "-i", input_path
     ]
-    
-    if has_bgm:
-        cmd.extend(["-stream_loop", "-1", "-i", bgm_path])
+    if extra_inputs:
+        cmd.extend(extra_inputs)
         
     cmd.extend([
         "-t", duration,
@@ -278,5 +340,55 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
     if process.returncode != 0:
         raise Exception(f"FFmpeg failed with error: {process.stderr.decode()}")
         
-    print("[FFmpeg] Clip rendered successfully!")
+    print("[FFmpeg] Clip rendered successfully with Watermark & SFX!")
     return output_path
+
+
+async def generate_viral_thumbnails(input_video_path: str, start_time: str, end_time: str, hook_title: str, export_base_path: str) -> list:
+    """
+    Generates 3 Vertical 9:16 Thumbnail Covers with 3D Hook Title text overlay at 15%, 50%, and 85% of clip duration.
+    """
+    def parse_time(ts_str):
+        parts = ts_str.split(':')
+        if len(parts) == 2:
+            return int(parts[0]) * 60 + int(parts[1])
+        elif len(parts) == 3:
+            return int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
+        return 0
+
+    t1 = parse_time(start_time)
+    t2 = parse_time(end_time)
+    duration = max(1, t2 - t1)
+    
+    sample_offsets = [t1 + duration * 0.15, t1 + duration * 0.50, t1 + duration * 0.85]
+    thumbnail_paths = []
+    clean_title = (hook_title or "VIRAL CLIP").upper().replace("'", "").replace('"', '')
+    
+    import subprocess
+    for idx, offset in enumerate(sample_offsets):
+        out_jpg = export_base_path.replace(".mp4", f"_cover_var{idx+1}.jpg")
+        
+        # 3D Text Overlay drawtext filter
+        draw_text_filter = (
+            f"scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,"
+            f"drawtext=text='{clean_title}':x=(w-text_w)/2:y=h*0.20:fontsize=72:fontcolor=yellow:borderw=6:bordercolor=black:shadowx=4:shadowy=4"
+        )
+        
+        cmd = [
+            "ffmpeg", "-y",
+            "-ss", f"{offset:.2f}",
+            "-i", input_video_path,
+            "-vframes", "1",
+            "-vf", draw_text_filter,
+            "-q:v", "2",
+            out_jpg
+        ]
+        
+        try:
+            await asyncio.to_thread(subprocess.run, cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if os.path.exists(out_jpg):
+                thumbnail_paths.append(out_jpg)
+        except Exception as e:
+            print(f"[Thumbnail Gen Error] {e}")
+            
+    return thumbnail_paths

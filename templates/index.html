@@ -209,6 +209,40 @@
                                 </div>
                             </div>
 
+                            <div class="grid grid-cols-2 gap-3 mt-1 pt-2 border-t border-zinc-800/60">
+                                <div>
+                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">🖼️ Custom Watermark Logo</label>
+                                    <input type="file" id="watermarkFile" accept="image/*" onchange="uploadWatermarkFile(this)" class="w-full bg-zinc-900 border border-zinc-800 rounded text-[11px] text-zinc-400 py-1 px-1.5 focus:outline-none">
+                                    <input type="hidden" id="watermarkPath" value="">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">📍 Watermark Position</label>
+                                    <select id="watermarkPosition" class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none">
+                                        <option value="top_right" selected>↗️ Top Right</option>
+                                        <option value="top_left">↖️ Top Left</option>
+                                        <option value="bottom_right">↘️ Bottom Right</option>
+                                        <option value="bottom_left">↙️ Bottom Left</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3 mt-1">
+                                <div>
+                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">🔤 Custom Font (.ttf/.otf)</label>
+                                    <input type="file" id="fontFile" accept=".ttf,.otf" onchange="uploadFontFile(this)" class="w-full bg-zinc-900 border border-zinc-800 rounded text-[11px] text-zinc-400 py-1 px-1.5 focus:outline-none">
+                                    <input type="hidden" id="fontPath" value="">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">🔔 Animated SFX (Audio Pop)</label>
+                                    <div class="pt-1.5">
+                                        <label class="flex items-center gap-2 cursor-pointer">
+                                            <input type="checkbox" id="enableSFX" checked class="rounded bg-zinc-900 border-zinc-800 text-zinc-100 focus:ring-0">
+                                            <span class="text-xs text-amber-400 font-semibold">Play Pop sound on Hook</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="flex flex-col gap-2 pt-2">
                                 <label class="flex items-center gap-2 cursor-pointer">
                                     <input type="checkbox" id="autoReframe" checked class="rounded bg-zinc-900 border-zinc-800 text-zinc-100 focus:ring-0 focus:ring-offset-0">
@@ -532,6 +566,47 @@
                                     <div class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1.5 font-mono">Hashtags</div>
                                     <div class="flex flex-wrap gap-1.5">${tags}</div>
                                 </div>
+
+                                <!-- Visual Timeline & Trim Editor -->
+                                <div class="bg-zinc-950 border border-zinc-800 rounded-lg p-3 space-y-2">
+                                    <div class="text-[10px] text-zinc-400 font-bold uppercase tracking-wider font-mono flex items-center justify-between">
+                                        <span>✂️ Visual Trim & Timeline Editor</span>
+                                        <span id="trimRangeLabel_${index}" class="text-amber-400 font-mono text-[11px]">${clip.start_time} ➔ ${clip.end_time}</span>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2 text-xs">
+                                        <div>
+                                            <label class="text-[9px] text-zinc-500 block mb-0.5">Start Time (MM:SS)</label>
+                                            <input type="text" id="trimStart_${index}" value="${clip.start_time}" class="w-full bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-zinc-200 font-mono text-center">
+                                        </div>
+                                        <div>
+                                            <label class="text-[9px] text-zinc-500 block mb-0.5">End Time (MM:SS)</label>
+                                            <input type="text" id="trimEnd_${index}" value="${clip.end_time}" class="w-full bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-zinc-200 font-mono text-center">
+                                        </div>
+                                    </div>
+                                    <button onclick="triggerRetrim(${index})" class="w-full bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 font-bold text-xs py-1.5 rounded transition flex items-center justify-center gap-1">
+                                        <span>✂️ Re-Trim Clip & Re-Render</span>
+                                    </button>
+                                </div>
+
+                                <!-- AI 3-Thumbnail Cover Gallery -->
+                                ${clip.thumbnail_variants && clip.thumbnail_variants.length ? `
+                                <div class="bg-zinc-950 border border-zinc-800 rounded-lg p-3">
+                                    <div class="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-2 font-mono flex items-center justify-between">
+                                        <span>🖼️ AI 3-Thumbnail Cover Gallery (9:16)</span>
+                                        <span class="text-[9px] text-amber-400 font-mono uppercase">High Retention</span>
+                                    </div>
+                                    <div class="grid grid-cols-3 gap-2">
+                                        ${clip.thumbnail_variants.map((v, vIdx) => `
+                                        <div class="relative group rounded border border-zinc-800 overflow-hidden bg-zinc-900">
+                                            <img src="${v}" class="w-full aspect-[9/16] object-cover">
+                                            <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                                                <a href="${v}" download class="bg-amber-400 text-zinc-950 font-bold text-[10px] px-2 py-1 rounded shadow">Var ${vIdx+1} 📥</a>
+                                            </div>
+                                        </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                ` : ''}
 
                                 ${previewVideoSrc ? `
                                 <div class="mt-auto pt-3 border-t border-zinc-800/60 flex flex-col xl:flex-row gap-3 items-center">
@@ -859,28 +934,67 @@
             };
         }
 
-        async function pollJobStatus() {
-            if (!currentJobId) return;
-
+        async function uploadWatermarkFile(input) {
+            if (!input.files || !input.files[0]) return;
+            const formData = new FormData();
+            formData.append('file', input.files[0]);
             try {
-                const res = await fetch(`/api/v1/clips/${currentJobId}`);
-                if (!res.ok) throw new Error('Failed to fetch status');
-                
-                const job = await res.json();
-                updateUI(job);
+                showToast("Uploading watermark logo...");
+                const res = await fetch('/api/v1/upload_watermark', { method: 'POST', body: formData });
+                if (!res.ok) throw new Error("Watermark upload failed");
+                const data = await res.json();
+                document.getElementById('watermarkPath').value = data.watermark_path;
+                showToast("✅ Watermark uploaded successfully!");
+                logToTerminal(`Watermark saved: ${data.filename}`, 'success');
+            } catch(e) {
+                showToast(`Watermark upload error: ${e.message}`);
+            }
+        }
 
-                if (job.status === 'COMPLETED' || job.status === 'FAILED') {
-                    clearInterval(pollInterval);
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<span>Extract Viral Clip</span>';
-                    
-                    if (job.status === 'FAILED' && job.error_log) {
-                        logToTerminal(job.error_log, 'error');
-                    }
-                }
-            } catch (err) {
-                console.error(err);
-                logToTerminal(`Polling error: ${err.message}`, 'error');
+        async function uploadFontFile(input) {
+            if (!input.files || !input.files[0]) return;
+            const formData = new FormData();
+            formData.append('file', input.files[0]);
+            try {
+                showToast("Uploading custom font...");
+                const res = await fetch('/api/v1/upload_font', { method: 'POST', body: formData });
+                if (!res.ok) throw new Error("Font upload failed");
+                const data = await res.json();
+                document.getElementById('fontPath').value = data.font_path;
+                showToast("✅ Custom Font uploaded successfully!");
+                logToTerminal(`Custom font saved: ${data.filename}`, 'success');
+            } catch(e) {
+                showToast(`Font upload error: ${e.message}`);
+            }
+        }
+
+        async function triggerRetrim(index) {
+            if (!currentJobId) return;
+            const startVal = document.getElementById(`trimStart_${index}`).value;
+            const endVal = document.getElementById(`trimEnd_${index}`).value;
+            
+            logToTerminal(`Re-trimming clip #${index+1} (${startVal} -> ${endVal})...`);
+            showToast(`✂️ Re-trimming clip #${index+1}...`);
+            
+            try {
+                const res = await fetch(`/api/v1/clips/${currentJobId}/retrim`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clip_index: index,
+                        start_time: startVal,
+                        end_time: endVal
+                    })
+                });
+                
+                if (!res.ok) throw new Error('Failed to trigger re-trim');
+                
+                logToTerminal(`Re-trim processing started!`, 'success');
+                if (pollInterval) clearInterval(pollInterval);
+                connectJobSSE(currentJobId);
+            } catch(e) {
+                logToTerminal(`Re-trim Error: ${e.message}`, 'error');
+                showToast(`Re-trim failed: ${e.message}`);
             }
         }
 
@@ -958,6 +1072,8 @@
                     formData.append('subtitle_preset', document.getElementById('subtitlePreset').value);
                     formData.append('subtitle_position', document.getElementById('subtitlePosition').value);
                     formData.append('target_language', document.getElementById('targetLanguage').value);
+                    formData.append('watermark_position', document.getElementById('watermarkPosition').value);
+                    formData.append('enable_sfx', document.getElementById('enableSFX').checked);
                     formData.append('custom_prompt', document.getElementById('customPrompt').value);
                     formData.append('clip_count', parseInt(document.getElementById('clipCount').value));
                     formData.append('auto_reframe', document.getElementById('autoReframe').checked);
@@ -986,6 +1102,8 @@
                             subtitle_preset: document.getElementById('subtitlePreset').value,
                             subtitle_position: document.getElementById('subtitlePosition').value,
                             target_language: document.getElementById('targetLanguage').value,
+                            watermark_position: document.getElementById('watermarkPosition').value,
+                            enable_sfx: document.getElementById('enableSFX').checked,
                             custom_prompt: document.getElementById('customPrompt').value,
                             clip_count: parseInt(document.getElementById('clipCount').value),
                             auto_reframe: document.getElementById('autoReframe').checked,
