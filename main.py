@@ -193,12 +193,13 @@ async def process_video_pipeline(job_id: str):
                 
                 hook_title_text = getattr(clip, "hook_title", "")
                 
-                # Use Whisper for frame-accurate subtitle timestamps, karaoke styling, presets, positioning, and hook banner
+                # Use Whisper for frame-accurate subtitle timestamps, karaoke styling, presets, positioning, translation, and hook banner
                 whisper_srt = await generate_whisper_srt(
                     raw_video_path, clip.start_time, clip.end_time, temp_dir, clip.id,
                     sub_size=job.subtitle_size, sub_color=job.subtitle_color, word_karaoke=job.word_karaoke,
                     hook_title=hook_title_text, subtitle_preset=getattr(job, "subtitle_preset", "hormozi"),
-                    subtitle_position=getattr(job, "subtitle_position", "bottom")
+                    subtitle_position=getattr(job, "subtitle_position", "bottom"),
+                    target_language=getattr(job, "target_language", "id")
                 )
                 
                 cover_export_path = os.path.join(settings.STORAGE_DIR, "exports", f"{job_id}_{clip.id}_cover.jpg")
@@ -286,38 +287,44 @@ async def process_video_pipeline(job_id: str):
 
 @app.post("/api/v1/clips", response_model=ClipResponse, status_code=202)
 async def create_clip(request: ClipRequest, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
-    # Validate YouTube URL
-    url_str = str(request.youtube_url)
+    raw_input = str(request.youtube_url).strip()
+    raw_urls = [u.strip() for u in re.split(r'[\r\n,\s]+', raw_input) if u.strip()]
+    
     youtube_pattern = re.compile(r'(https?://)?(www\.)?(youtube\.com|youtu\.be)/.+')
-    if not youtube_pattern.match(url_str):
-        raise HTTPException(status_code=400, detail="Invalid YouTube URL. Please provide a valid youtube.com or youtu.be link.")
+    valid_urls = [u for u in raw_urls if youtube_pattern.match(u)][:5] # Limit max 5 URLs per batch
     
-    new_job = VideoJob(
-        youtube_url=url_str,
-        aspect_ratio=request.aspect_ratio,
-        subtitle_color=request.subtitle_color,
-        subtitle_size=request.subtitle_size,
-        subtitle_preset=request.subtitle_preset,
-        subtitle_position=request.subtitle_position,
-        crop_style=request.crop_style,
-        custom_prompt=request.custom_prompt,
-        clip_count=request.clip_count,
-        auto_reframe=request.auto_reframe,
-        word_karaoke=request.word_karaoke,
-        bgm_ducking=request.bgm_ducking,
-        layout_mode=request.layout_mode,
-        webhook_url=request.webhook_url,
-        gemini_api_key=request.gemini_api_key,
-        status=JobStatus.QUEUED,
-        current_step_message="Enqueued in background tasks."
-    )
-    db.add(new_job)
-    await db.commit()
-    await db.refresh(new_job)
+    if not valid_urls:
+        raise HTTPException(status_code=400, detail="Invalid YouTube URL. Please provide valid youtube.com or youtu.be link(s).")
     
-    background_tasks.add_task(process_video_pipeline, new_job.id)
-    
-    return ClipResponse(job_id=new_job.id, status=new_job.status)
+    job_ids = []
+    for index, url_str in enumerate(valid_urls):
+        new_job = VideoJob(
+            youtube_url=url_str,
+            aspect_ratio=request.aspect_ratio,
+            subtitle_color=request.subtitle_color,
+            subtitle_size=request.subtitle_size,
+            subtitle_preset=request.subtitle_preset,
+            subtitle_position=request.subtitle_position,
+            target_language=request.target_language,
+            crop_style=request.crop_style,
+            custom_prompt=request.custom_prompt,
+            clip_count=request.clip_count,
+            auto_reframe=request.auto_reframe,
+            word_karaoke=request.word_karaoke,
+            bgm_ducking=request.bgm_ducking,
+            layout_mode=request.layout_mode,
+            webhook_url=request.webhook_url,
+            gemini_api_key=request.gemini_api_key,
+            status=JobStatus.QUEUED,
+            current_step_message=f"Enqueued in background batch ({index+1}/{len(valid_urls)})."
+        )
+        db.add(new_job)
+        await db.commit()
+        await db.refresh(new_job)
+        job_ids.append(new_job.id)
+        background_tasks.add_task(process_video_pipeline, new_job.id)
+        
+    return ClipResponse(job_id=job_ids[0], job_ids=job_ids, status=JobStatus.QUEUED)
 
 
 @app.post("/api/v1/upload", response_model=ClipResponse)
@@ -329,6 +336,7 @@ async def upload_local_video(
     subtitle_size: int = Form(90),
     subtitle_preset: str = Form("hormozi"),
     subtitle_position: str = Form("bottom"),
+    target_language: str = Form("id"),
     crop_style: str = Form("center_crop"),
     custom_prompt: str = Form(""),
     clip_count: int = Form(3),
@@ -348,6 +356,7 @@ async def upload_local_video(
         subtitle_size=subtitle_size,
         subtitle_preset=subtitle_preset,
         subtitle_position=subtitle_position,
+        target_language=target_language,
         crop_style=crop_style,
         custom_prompt=custom_prompt,
         clip_count=clip_count,
@@ -451,6 +460,7 @@ class RerenderRequest(BaseModel):
     subtitle_size: int
     subtitle_preset: str = "hormozi"
     subtitle_position: str = "bottom"
+    target_language: str = "id"
     subtitle_opacity: int = 100
     word_karaoke: bool = False
 
@@ -464,6 +474,7 @@ async def rerender_clip(job_id: str, request: RerenderRequest, background_tasks:
     job.subtitle_size = request.subtitle_size
     job.subtitle_preset = request.subtitle_preset
     job.subtitle_position = request.subtitle_position
+    job.target_language = request.target_language
     job.word_karaoke = request.word_karaoke
     job.status = JobStatus.EDITING
     job.progress_percentage = 80
@@ -481,11 +492,23 @@ async def rerender_clip(job_id: str, request: RerenderRequest, background_tasks:
                 raw_video_path = os.path.join(settings.STORAGE_DIR, "temp", f"{jid}.mp4")
                 clips_data = json.loads(j.clips_json) if j.clips_json else []
                 output_paths = []
+                temp_dir = os.path.join(settings.STORAGE_DIR, "temp")
+                
                 for clip_dict in clips_data:
                     clip_id = clip_dict.get("id")
                     start_time = clip_dict.get("start_time")
                     end_time = clip_dict.get("end_time")
-                    srt_text = clip_dict.get("srt_subtitles")
+                    hook_title_text = clip_dict.get("hook_title", "")
+                    
+                    # Re-generate ASS Subtitle with updated styling, position, & translation
+                    from services.whisper_stt import generate_whisper_srt
+                    srt_text = await generate_whisper_srt(
+                        raw_video_path, start_time, end_time, temp_dir, clip_id,
+                        sub_size=j.subtitle_size, sub_color=j.subtitle_color, word_karaoke=j.word_karaoke,
+                        hook_title=hook_title_text, subtitle_preset=getattr(j, "subtitle_preset", "hormozi"),
+                        subtitle_position=getattr(j, "subtitle_position", "bottom"),
+                        target_language=getattr(j, "target_language", "id")
+                    )
                     
                     subtitle_path = None
                     if srt_text:
@@ -495,7 +518,6 @@ async def rerender_clip(job_id: str, request: RerenderRequest, background_tasks:
                             
                     export_path = os.path.join(settings.STORAGE_DIR, "exports", f"{jid}_{clip_id}_rerender.mp4")
                     
-                    # Cleanup old re-render file before creating new one
                     if os.path.exists(export_path):
                         os.remove(export_path)
                     

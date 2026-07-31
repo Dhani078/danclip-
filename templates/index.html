@@ -90,11 +90,14 @@
                 </div>
 
                 <form id="clipForm" class="flex flex-col gap-4">
-                    <!-- URL Input -->
+                    <!-- URL Input (Supports Single URL or Multi-URL Batch) -->
                     <div id="urlInputContainer">
-                        <label for="url" class="sr-only">YouTube URL</label>
-                        <input type="url" id="url" name="url" placeholder="https://youtube.com/watch?v=..." 
-                            class="w-full bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 transition-colors">
+                        <div class="flex justify-between items-center mb-1">
+                            <label for="url" class="text-xs text-zinc-400 font-medium">YouTube URL / Playlist Batch (1-5 Link)</label>
+                            <span class="text-[10px] text-amber-400 font-mono font-semibold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">⚡ Multi-URL Batch Supported</span>
+                        </div>
+                        <textarea id="url" name="url" rows="2" placeholder="Masukkan 1 link atau pisahkan beberapa link dengan baris baru (maks 5 link)...&#10;https://youtube.com/watch?v=1&#10;https://youtube.com/watch?v=2" 
+                            class="w-full bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-xs font-mono text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 transition-colors resize-none"></textarea>
                     </div>
 
                     <!-- File Drag & Drop Upload Zone -->
@@ -112,7 +115,7 @@
                     <!-- Advanced Settings -->
                     <details class="group border border-zinc-800 rounded-md bg-zinc-950/50">
                         <summary class="cursor-pointer px-3 py-2 text-xs font-medium text-zinc-400 hover:text-zinc-200 list-none flex justify-between items-center transition-colors outline-none">
-                            <span>⚙️ Advanced Settings</span>
+                            <span>⚙️ Advanced Settings & Multi-Language Translate</span>
                             <span class="transform group-open:rotate-180 transition-transform duration-200">▼</span>
                         </summary>
                         <div class="px-3 pb-3 pt-2 border-t border-zinc-800 flex flex-col gap-3">
@@ -161,6 +164,13 @@
                                         <option value="bottom" selected>⬇️ Bottom (Classic - 15%)</option>
                                         <option value="middle">↔️ Middle / Center (50%)</option>
                                         <option value="top">⬆️ Top Header (80%)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">🌐 Subtitle Language (Auto-Translate)</label>
+                                    <select id="targetLanguage" class="w-full bg-zinc-900 border border-sky-500/30 rounded text-xs text-sky-400 font-semibold py-1.5 px-2 focus:outline-none focus:border-sky-500">
+                                        <option value="id" selected>🇮🇩 Bahasa Indonesia (Original)</option>
+                                        <option value="en">🇺🇸 English (Auto-Translate)</option>
                                     </select>
                                 </div>
                                 <div>
@@ -438,13 +448,69 @@
                                     </div>
                                 </div>
 
-                                ${clip.hook_title ? `<div class="bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-semibold px-3.5 py-2 rounded-lg flex items-center gap-2"><span>🔥</span> <span>Hook Title: <strong class="text-amber-200">${clip.hook_title}</strong></span></div>` : ''}
+                                 ${clip.hook_title ? `<div class="bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-semibold px-3.5 py-2 rounded-lg flex items-center gap-2"><span>🔥</span> <span>Hook Title: <strong class="text-amber-200">${clip.hook_title}</strong></span></div>` : ''}
                                 
+                                ${clip.viral_reasoning ? `
+                                <div class="bg-indigo-950/40 border border-indigo-500/30 rounded-lg p-3 text-xs text-indigo-200 leading-relaxed shadow-sm">
+                                    <div class="font-bold text-indigo-400 flex items-center gap-1.5 mb-1 text-[11px] uppercase tracking-wider">
+                                        <span>💡 AI Viral Hook Rating Breakdown</span>
+                                    </div>
+                                    <p>${clip.viral_reasoning}</p>
+                                </div>
+                                ` : ''}
+
                                 <div>
                                     <div class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1.5 font-mono">AI Context & Summary</div>
                                     <div class="text-xs text-zinc-300 bg-zinc-950/60 border border-zinc-800/80 rounded-lg p-3 leading-relaxed">${clip.caption}</div>
                                 </div>
                                 
+                                <!-- Platform Title & Hashtag Generator -->
+                                ${clip.tiktok_titles && clip.tiktok_titles.length ? `
+                                <div class="border border-zinc-800 rounded-lg p-3 bg-zinc-950/80">
+                                    <div class="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-2 font-mono flex items-center justify-between">
+                                        <span>🎯 AI 3-Title Generator & Hashtags</span>
+                                        <span class="text-emerald-400 text-[9px]">FYP Optimized</span>
+                                    </div>
+                                    
+                                    <div class="space-y-2">
+                                        <!-- TikTok Titles -->
+                                        <div class="bg-zinc-900/60 border border-zinc-800 p-2.5 rounded text-xs">
+                                            <div class="font-semibold text-rose-400 mb-1 flex justify-between items-center">
+                                                <span>🎵 TikTok Titles (3 Variasi)</span>
+                                                <button onclick="copyCaption('tiktok', ${index})" class="text-[10px] text-zinc-400 hover:text-white bg-zinc-800 px-2 py-0.5 rounded">Copy Full Caption</button>
+                                            </div>
+                                            <ul class="list-disc list-inside text-zinc-300 space-y-1 text-[11px]">
+                                                ${(clip.tiktok_titles || []).map(t => `<li class="hover:text-amber-300 cursor-pointer" onclick="navigator.clipboard.writeText('${t.replace(/'/g, "\\'")}'); alert('Judul disalin: ${t.replace(/'/g, "\\'")}');">${t}</li>`).join('')}
+                                            </ul>
+                                            ${clip.tiktok_hashtags && clip.tiktok_hashtags.length ? `<div class="mt-1.5 text-[10px] text-zinc-400 font-mono">${clip.tiktok_hashtags.join(' ')}</div>` : ''}
+                                        </div>
+
+                                        <!-- Reels Titles -->
+                                        <div class="bg-zinc-900/60 border border-zinc-800 p-2.5 rounded text-xs">
+                                            <div class="font-semibold text-purple-400 mb-1 flex justify-between items-center">
+                                                <span>📸 Instagram Reels Titles</span>
+                                                <button onclick="copyCaption('reels', ${index})" class="text-[10px] text-zinc-400 hover:text-white bg-zinc-800 px-2 py-0.5 rounded">Copy Full Caption</button>
+                                            </div>
+                                            <ul class="list-disc list-inside text-zinc-300 space-y-1 text-[11px]">
+                                                ${(clip.reels_titles || []).map(t => `<li class="hover:text-amber-300 cursor-pointer" onclick="navigator.clipboard.writeText('${t.replace(/'/g, "\\'")}'); alert('Judul disalin: ${t.replace(/'/g, "\\'")}');">${t}</li>`).join('')}
+                                            </ul>
+                                            ${clip.reels_hashtags && clip.reels_hashtags.length ? `<div class="mt-1.5 text-[10px] text-zinc-400 font-mono">${clip.reels_hashtags.join(' ')}</div>` : ''}
+                                        </div>
+
+                                        <!-- Shorts Titles -->
+                                        <div class="bg-zinc-900/60 border border-zinc-800 p-2.5 rounded text-xs">
+                                            <div class="font-semibold text-red-400 mb-1 flex justify-between items-center">
+                                                <span>🔴 YouTube Shorts Titles</span>
+                                                <button onclick="copyCaption('shorts', ${index})" class="text-[10px] text-zinc-400 hover:text-white bg-zinc-800 px-2 py-0.5 rounded">Copy Full Caption</button>
+                                            </div>
+                                            <ul class="list-disc list-inside text-zinc-300 space-y-1 text-[11px]">
+                                                ${(clip.shorts_titles || []).map(t => `<li class="hover:text-amber-300 cursor-pointer" onclick="navigator.clipboard.writeText('${t.replace(/'/g, "\\'")}'); alert('Judul disalin: ${t.replace(/'/g, "\\'")}');">${t}</li>`).join('')}
+                                            </ul>
+                                            ${clip.shorts_hashtags && clip.shorts_hashtags.length ? `<div class="mt-1.5 text-[10px] text-zinc-400 font-mono">${clip.shorts_hashtags.join(' ')}</div>` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                                ` : `
                                 <!-- Multi-Platform Caption Copy Bar -->
                                 <div>
                                     <div class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1.5 font-mono">1-Click Platform Copy</div>
@@ -460,6 +526,7 @@
                                         </button>
                                     </div>
                                 </div>
+                                `}
 
                                 <div>
                                     <div class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1.5 font-mono">Hashtags</div>
@@ -890,6 +957,7 @@
                     formData.append('subtitle_size', parseInt(document.getElementById('subtitleSize').value));
                     formData.append('subtitle_preset', document.getElementById('subtitlePreset').value);
                     formData.append('subtitle_position', document.getElementById('subtitlePosition').value);
+                    formData.append('target_language', document.getElementById('targetLanguage').value);
                     formData.append('custom_prompt', document.getElementById('customPrompt').value);
                     formData.append('clip_count', parseInt(document.getElementById('clipCount').value));
                     formData.append('auto_reframe', document.getElementById('autoReframe').checked);
@@ -917,6 +985,7 @@
                             subtitle_size: parseInt(document.getElementById('subtitleSize').value),
                             subtitle_preset: document.getElementById('subtitlePreset').value,
                             subtitle_position: document.getElementById('subtitlePosition').value,
+                            target_language: document.getElementById('targetLanguage').value,
                             custom_prompt: document.getElementById('customPrompt').value,
                             clip_count: parseInt(document.getElementById('clipCount').value),
                             auto_reframe: document.getElementById('autoReframe').checked,
@@ -934,7 +1003,12 @@
                 const data = await res.json();
                 currentJobId = data.job_id;
                 
-                logToTerminal(`Job created. ID: ${currentJobId}`, 'success');
+                if (data.job_ids && data.job_ids.length > 1) {
+                    logToTerminal(`🚀 Batch Mode: ${data.job_ids.length} Jobs Created Simultaneously! Active ID: ${currentJobId}`, 'success');
+                    showToast(`⚡ Batch Processing Started! ${data.job_ids.length} Videos Enqueued.`);
+                } else {
+                    logToTerminal(`Job created. ID: ${currentJobId}`, 'success');
+                }
                 
                 if (pollInterval) clearInterval(pollInterval);
                 connectJobSSE(currentJobId);
