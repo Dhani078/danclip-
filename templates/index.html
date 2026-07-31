@@ -186,17 +186,12 @@
                             <div class="grid grid-cols-1 gap-3 mt-1">
                                 <div>
                                     <div class="flex items-center justify-between mb-1">
-                                        <label class="text-[10px] text-zinc-500 uppercase tracking-wider block">AI Director Prompt (Optional)</label>
+                                        <label class="text-[10px] text-zinc-500 uppercase tracking-wider block font-semibold text-emerald-400">🤖 AI Director Prompt (Multi-Line / Scrollable)</label>
                                         <button type="button" onclick="openPromptModal()" class="text-[10px] text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 transition">
-                                            <span>🔍 Expand Editor / Pop-Up</span>
+                                            <span>🔍 Pop-Up Fullscreen</span>
                                         </button>
                                     </div>
-                                    <div class="relative">
-                                        <input type="text" id="customPrompt" placeholder="e.g. Focus on funny moments, find jokes..." class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 pr-8 focus:outline-none focus:border-zinc-600 placeholder-zinc-700">
-                                        <button type="button" onclick="openPromptModal()" class="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white text-xs">
-                                            ⚡
-                                        </button>
-                                    </div>
+                                    <textarea id="customPrompt" rows="3" placeholder="Tulis arahan prompt bebas di sini (bisa multi-line & discroll)...&#10;Misal:&#10;- Cari momen paling lucu&#10;- Wajib gunakan hashtag #flashpeak #motionklip #ezklip" class="w-full bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-zinc-200 p-2.5 focus:outline-none focus:border-emerald-500 placeholder-zinc-600 resize-y leading-relaxed font-mono overflow-y-auto"></textarea>
                                 </div>
                             </div>
                             
