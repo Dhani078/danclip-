@@ -8,6 +8,7 @@ class ClipRequest(BaseModel):
     aspect_ratio: str = "9:16"
     subtitle_color: str = "&H00FFFF"
     subtitle_size: int = 90
+    subtitle_preset: str = "hormozi"
     crop_style: str = "center_crop"
     custom_prompt: Optional[str] = ""
     clip_count: int = 3

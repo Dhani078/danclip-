@@ -9,6 +9,7 @@ import sys
 import site
 import subprocess
 import asyncio
+import re
 from datetime import datetime
 
 import ctypes
@@ -119,10 +120,44 @@ def extract_clip_audio(input_video: str, start_time: str, end_time: str, output_
     return result.returncode == 0
 
 
-def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100, sub_color: str = "&H00FFFFFF", word_karaoke: bool = False, hook_title: str = "") -> str:
+def apply_multicolor_highlight(clean_word: str, default_color: str = "&H00FFFFFF") -> str:
     """
-    Transcribe audio file to ASS (Advanced SubStation Alpha) format using Whisper.
-    Generates word-by-word karaoke highlighting and optional top hook title banner.
+    Analyzes word context and returns ASS color tag for multi-color word highlighting:
+    - Numbers, Money, Percentages -> Yellow (&H0000FFFF)
+    - Positive / Action / Impact -> Green (&H0000FF00)
+    - Warning / Danger / Stop -> Red (&H000000FF)
+    - Special / Curiosity -> Cyan (&H00FFFF00)
+    """
+    word_upper = clean_word.upper()
+    
+    # 1. Numbers / Money / Percentage -> Bright Yellow
+    if re.search(r'\d', word_upper) or word_upper in ["UANG", "DUIT", "RUPIAH", "JUTA", "MILIAR", "DOLLAR", "PERSEN", "RIBU", "JT", "RB", "PERCENT", "PROSEN"]:
+        return f"{{\\c&H0000FFFF&}}{clean_word}"
+        
+    # 2. High Impact / Positive / Success -> Neon Green
+    if word_upper in ["KEREN", "SUKSES", "KAYA", "JATUH", "BANGKIT", "MENANG", "JUARA", "RAHASIA", "UNTUNG", "NAIK", "BOOM", "PECAH", "GILA", "TERBAIK", "POWER", "STRATEGI", "TIPS", "IDE"]:
+        return f"{{\\c&H0000FF00&}}{clean_word}"
+        
+    # 3. Danger / Warning / Negative / Stop -> Crimson Red
+    if word_upper in ["JANGAN", "BAHAYA", "SALAH", "GAGAL", "RUGI", "STOP", "BOHONG", "HATI-HATI", "WARNING", "TAKUT", "MAMPUS", "MATI", "STRES"]:
+        return f"{{\\c&H000000FF&}}{clean_word}"
+        
+    # 4. Special / Curiosity -> Bright Cyan
+    if word_upper in ["APA", "KENAPA", "BAGAIMANA", "KOK", "WOW", "BISA", "CARA"]:
+        return f"{{\\c&H00FFFF00&}}{clean_word}"
+        
+    return f"{{\\c{default_color}}}{clean_word}"
+
+
+def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100, sub_color: str = "&H00FFFFFF", word_karaoke: bool = False, hook_title: str = "", subtitle_preset: str = "hormozi") -> str:
+    """
+    Transcribe audio file to ASS format using Whisper.
+    Supports Preset Subtitle Styles:
+    - 'hormozi': Alex Hormozi Style (Bold yellow/white, 1-2 words/line, active highlight)
+    - 'mrbeast': MrBeast Style (Large bold, multi-color word highlighting)
+    - 'ali_abdaal': Ali Abdaal Aesthetic (Clean serif font with dark background box)
+    - 'tiktok_neon': TikTok Viral Neon (Glowing neon outline)
+    - 'multicolor': Multi-Color Auto Word Highlighting (Numbers=Yellow, Impact=Green, Danger=Red)
     """
     model = get_whisper_model()
     
@@ -139,7 +174,39 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
     )
     
     actual_font_size = int(sub_size) * 4 if int(sub_size) < 30 else int(sub_size)
+    preset = (subtitle_preset or "hormozi").lower()
     
+    # Configure ASS Styles based on preset
+    font_name = "Segoe UI Black"
+    primary_color = sub_color if sub_color else "&H00FFFFFF"
+    back_color = "&H80000000"
+    border_style = 1
+    outline_val = 6
+    shadow_val = 3
+    extra_tags = ""
+    
+    if preset == "mrbeast":
+        font_name = "Impact"
+        actual_font_size = int(actual_font_size * 1.15)
+        primary_color = "&H0000FFFF" # Yellow
+        outline_val = 8
+        shadow_val = 4
+    elif preset == "ali_abdaal":
+        font_name = "Georgia"
+        actual_font_size = int(actual_font_size * 0.85)
+        primary_color = "&H00F0F0F0" # Soft White
+        back_color = "&HAA151515"   # Opaque Dark Box
+        border_style = 3            # Opaque Box Style
+        outline_val = 2
+        shadow_val = 0
+    elif preset == "tiktok_neon":
+        font_name = "Segoe UI Black"
+        primary_color = "&H00FFFFFF"
+        back_color = "&H00FFFF00"   # Cyan Neon Glow
+        outline_val = 5
+        shadow_val = 5
+        extra_tags = "{\\blur5}"
+        
     ass_header = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: 1080
@@ -147,13 +214,13 @@ PlayResY: 1920
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,Segoe UI Black,{actual_font_size},&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,6,3,2,60,60,320,1
+Style: Default,{font_name},{actual_font_size},{primary_color},&H000000FF,&H00000000,{back_color},-1,0,0,0,100,100,0,0,{border_style},{outline_val},{shadow_val},2,60,60,320,1
 Style: HookHeader,Segoe UI Black,52,&H0000FFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,8,4,8,60,60,240,1
 
 [Events]
 Format: Layer, Start, End, Style, Text
 """
-    # Kamus Emoji Viral untuk injeksi otomatis pada kata wajib
+
     VIRAL_EMOJIS = {
         "UANG": "💰", "CASH": "💵", "DUIT": "💸", "RUPIAH": "💴",
         "MARAH": "😡", "KESEL": "😤", "GILA": "🤯", "STRES": "😫",
@@ -174,17 +241,19 @@ Format: Layer, Start, End, Style, Text
         clean_hook = hook_title.strip().upper()
         ass_events.append(f"Dialogue: 0,0:00:00.00,0:00:04.50,HookHeader,{{\\an8}}{clean_hook}")
     
+    use_multicolor = (preset in ["mrbeast", "multicolor"])
+    chunk_size = 2 if (word_karaoke or preset in ["hormozi", "mrbeast", "tiktok_neon"]) else 5
+    
     for segment in segments:
         if segment.words:
             words = list(segment.words)
-            chunk_size = 2 if word_karaoke else 5  # 2 words for Alex Hormozi, 5 for standard
             
             for i in range(0, len(words), chunk_size):
                 chunk = words[i:i + chunk_size]
                 if not chunk: continue
                     
-                if word_karaoke:
-                    # Alex Hormozi style: 1-2 words per line, active word highlighted with sub_color
+                if word_karaoke or preset in ["hormozi", "mrbeast", "tiktok_neon"]:
+                    # Word-by-word active highlight / multi-color style
                     for idx_w, w in enumerate(chunk):
                         clean_word = w.word.strip().replace('.', '').replace(',', '').replace('?', '').replace('!', '').replace('"', '').upper()
                         if not clean_word: continue
@@ -193,15 +262,19 @@ Format: Layer, Start, End, Style, Text
                         start_ass = format_ass_time(w.start)
                         end_ass = format_ass_time(w.end)
                         
-                        # Emoji remains in neutral white, word receives active highlight color
-                        if emoji_prefix:
-                            highlighted_text = f"{{\\c&H00FFFFFF&}}{emoji_prefix} {{\\c{sub_color}}}{clean_word}"
+                        if use_multicolor:
+                            styled_text = apply_multicolor_highlight(clean_word, primary_color.replace("&H00", ""))
                         else:
-                            highlighted_text = f"{{\\c{sub_color}}}{clean_word}"
+                            styled_text = f"{{\\c{sub_color}}}{clean_word}"
+                            
+                        if emoji_prefix:
+                            highlighted_text = f"{extra_tags}{{\\c&H00FFFFFF&}}{emoji_prefix} {styled_text}"
+                        else:
+                            highlighted_text = f"{extra_tags}{styled_text}"
                             
                         ass_events.append(f"Dialogue: 0,{start_ass},{end_ass},Default,{highlighted_text}")
                 else:
-                    # Standard chunking with emoji support
+                    # Standard chunking
                     start_ass = format_ass_time(chunk[0].start)
                     end_ass = format_ass_time(chunk[-1].end)
                     
@@ -211,20 +284,23 @@ Format: Layer, Start, End, Style, Text
                         if not clean_word: continue
                         
                         emoji_prefix = VIRAL_EMOJIS.get(clean_word, "")
-                        display_word = f"{emoji_prefix} {clean_word}" if emoji_prefix else clean_word
+                        if use_multicolor:
+                            styled_word = apply_multicolor_highlight(clean_word, primary_color.replace("&H00", ""))
+                        else:
+                            styled_word = clean_word
+                            
+                        display_word = f"{emoji_prefix} {styled_word}" if emoji_prefix else styled_word
                         line_words.append(display_word)
                         
                     text = " ".join(line_words)
                     if text:
-                        ass_events.append(f"Dialogue: 0,{start_ass},{end_ass},Default,{text}")
-                        
+                        ass_events.append(f"Dialogue: 0,{start_ass},{end_ass},Default,{extra_tags}{text}")
         else:
-            # Fallback
             start_ass = format_ass_time(segment.start)
             end_ass = format_ass_time(segment.end)
             text = segment.text.strip().replace('.', '').replace(',', '').replace('?', '').replace('!', '').upper()
             if text:
-                ass_events.append(f"Dialogue: 0,{start_ass},{end_ass},Default,{text}")
+                ass_events.append(f"Dialogue: 0,{start_ass},{end_ass},Default,{extra_tags}{text}")
                 
     return ass_header + "\n".join(ass_events)
 
@@ -238,10 +314,10 @@ def format_ass_time(seconds: float) -> str:
     return f"{hours}:{minutes:02d}:{secs:02d}.{cs:02d}"
 
 
-async def generate_whisper_srt(input_video: str, start_time: str, end_time: str, temp_dir: str, clip_id: str, sub_size: int = 100, sub_color: str = "&H00FFFFFF", word_karaoke: bool = False, hook_title: str = "") -> str:
+async def generate_whisper_srt(input_video: str, start_time: str, end_time: str, temp_dir: str, clip_id: str, sub_size: int = 100, sub_color: str = "&H00FFFFFF", word_karaoke: bool = False, hook_title: str = "", subtitle_preset: str = "hormozi") -> str:
     """
-    Full pipeline: extract clip audio -> transcribe with Whisper -> return SRT string.
-    All timestamps in the returned SRT are relative to clip start (00:00:00).
+    Full pipeline: extract clip audio -> transcribe with Whisper -> return ASS string.
+    All timestamps in the returned ASS are relative to clip start (00:00:00).
     """
     audio_path = os.path.join(temp_dir, f"whisper_{clip_id}.wav")
     
@@ -251,8 +327,8 @@ async def generate_whisper_srt(input_video: str, start_time: str, end_time: str,
         if not success:
             return ""
             
-        # Step 2: Transcribe (ASS format is much better for custom styling and karaoke)
-        ass_content = await asyncio.to_thread(transcribe_to_ass, audio_path, "id", sub_size, sub_color, word_karaoke, hook_title)
+        # Step 2: Transcribe (ASS format with preset styles & multi-color highlighting)
+        ass_content = await asyncio.to_thread(transcribe_to_ass, audio_path, "id", sub_size, sub_color, word_karaoke, hook_title, subtitle_preset)
         return ass_content
     except Exception as e:
         print(f"[Whisper STT Error] {e}")
