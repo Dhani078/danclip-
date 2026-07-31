@@ -1040,6 +1040,20 @@
             }
         }
 
+        function safeVal(id, defaultVal = '') {
+            const el = document.getElementById(id);
+            return el ? el.value : defaultVal;
+        }
+        function safeCheck(id, defaultVal = false) {
+            const el = document.getElementById(id);
+            return el ? el.checked : defaultVal;
+        }
+        function safeInt(id, defaultVal = 3) {
+            const val = safeVal(id);
+            const parsed = parseInt(val, 10);
+            return isNaN(parsed) ? defaultVal : parsed;
+        }
+
         const form = document.getElementById('clipForm');
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -1050,7 +1064,7 @@
             }
 
             if (currentInputMode === 'url') {
-                const url = document.getElementById('url').value;
+                const url = safeVal('url').trim();
                 if (!url) {
                     showToast("Please enter a valid YouTube URL! ⚠️");
                     return;
@@ -1075,53 +1089,53 @@
                     logToTerminal(`Uploading local video file: ${selectedLocalFile.name}...`);
                     const formData = new FormData();
                     formData.append('file', selectedLocalFile);
-                    formData.append('aspect_ratio', document.getElementById('aspectRatio').value);
-                    formData.append('crop_style', document.getElementById('cropStyle').value);
-                    formData.append('subtitle_color', document.getElementById('subtitleColor').value);
-                    formData.append('subtitle_size', parseInt(document.getElementById('subtitleSize').value));
-                    formData.append('subtitle_preset', document.getElementById('subtitlePreset').value);
-                    formData.append('subtitle_position', document.getElementById('subtitlePosition').value);
-                    formData.append('target_language', document.getElementById('targetLanguage').value);
-                    formData.append('watermark_position', document.getElementById('watermarkPosition').value);
-                    formData.append('enable_sfx', document.getElementById('enableSFX').checked);
-                    formData.append('custom_prompt', document.getElementById('customPrompt').value);
-                    formData.append('clip_count', parseInt(document.getElementById('clipCount').value));
-                    formData.append('auto_reframe', document.getElementById('autoReframe').checked);
-                    formData.append('word_karaoke', document.getElementById('wordKaraoke').checked);
-                    formData.append('bgm_ducking', document.getElementById('bgmDucking').checked);
-                    formData.append('layout_mode', document.getElementById('layoutMode').value);
-                    formData.append('webhook_url', document.getElementById('webhookUrl').value);
-                    formData.append('gemini_api_key', document.getElementById('geminiApiKey').value);
+                    formData.append('aspect_ratio', safeVal('aspectRatio', '9:16'));
+                    formData.append('crop_style', safeVal('cropStyle', 'center_crop'));
+                    formData.append('subtitle_color', safeVal('subtitleColor', '&H00FFFF'));
+                    formData.append('subtitle_size', safeInt('subtitleSize', 90));
+                    formData.append('subtitle_preset', safeVal('subtitlePreset', 'hormozi'));
+                    formData.append('subtitle_position', safeVal('subtitlePosition', 'bottom'));
+                    formData.append('target_language', safeVal('targetLanguage', 'id'));
+                    formData.append('watermark_position', safeVal('watermarkPosition', 'bottom_right'));
+                    formData.append('enable_sfx', safeCheck('enableSFX', true));
+                    formData.append('custom_prompt', safeVal('customPrompt', ''));
+                    formData.append('clip_count', safeInt('clipCount', 3));
+                    formData.append('auto_reframe', safeCheck('autoReframe', true));
+                    formData.append('word_karaoke', safeCheck('wordKaraoke', true));
+                    formData.append('bgm_ducking', safeCheck('bgmDucking', true));
+                    formData.append('layout_mode', safeVal('layoutMode', 'single'));
+                    formData.append('webhook_url', safeVal('webhookUrl', ''));
+                    formData.append('gemini_api_key', safeVal('geminiApiKey', ''));
 
                     res = await fetch('/api/v1/upload', {
                         method: 'POST',
                         body: formData
                     });
                 } else {
-                    const url = document.getElementById('url').value;
+                    const url = safeVal('url');
                     logToTerminal(`Initializing new job for: ${url}`);
                     res = await fetch('/api/v1/clips', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
                             youtube_url: url,
-                            aspect_ratio: document.getElementById('aspectRatio').value,
-                            crop_style: document.getElementById('cropStyle').value,
-                            subtitle_color: document.getElementById('subtitleColor').value,
-                            subtitle_size: parseInt(document.getElementById('subtitleSize').value),
-                            subtitle_preset: document.getElementById('subtitlePreset').value,
-                            subtitle_position: document.getElementById('subtitlePosition').value,
-                            target_language: document.getElementById('targetLanguage').value,
-                            watermark_position: document.getElementById('watermarkPosition').value,
-                            enable_sfx: document.getElementById('enableSFX').checked,
-                            custom_prompt: document.getElementById('customPrompt').value,
-                            clip_count: parseInt(document.getElementById('clipCount').value),
-                            auto_reframe: document.getElementById('autoReframe').checked,
-                            word_karaoke: document.getElementById('wordKaraoke').checked,
-                            bgm_ducking: document.getElementById('bgmDucking').checked,
-                            layout_mode: document.getElementById('layoutMode').value,
-                            webhook_url: document.getElementById('webhookUrl').value,
-                            gemini_api_key: document.getElementById('geminiApiKey').value
+                            aspect_ratio: safeVal('aspectRatio', '9:16'),
+                            crop_style: safeVal('cropStyle', 'center_crop'),
+                            subtitle_color: safeVal('subtitleColor', '&H00FFFF'),
+                            subtitle_size: safeInt('subtitleSize', 90),
+                            subtitle_preset: safeVal('subtitlePreset', 'hormozi'),
+                            subtitle_position: safeVal('subtitlePosition', 'bottom'),
+                            target_language: safeVal('targetLanguage', 'id'),
+                            watermark_position: safeVal('watermarkPosition', 'bottom_right'),
+                            enable_sfx: safeCheck('enableSFX', true),
+                            custom_prompt: safeVal('customPrompt', ''),
+                            clip_count: safeInt('clipCount', 3),
+                            auto_reframe: safeCheck('autoReframe', true),
+                            word_karaoke: safeCheck('wordKaraoke', true),
+                            bgm_ducking: safeCheck('bgmDucking', true),
+                            layout_mode: safeVal('layoutMode', 'single'),
+                            webhook_url: safeVal('webhookUrl', ''),
+                            gemini_api_key: safeVal('geminiApiKey', '')
                         })
                     });
                 }
