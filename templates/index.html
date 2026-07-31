@@ -279,7 +279,7 @@
                             </div>
                         </details>
                     
-                    <button type="submit" id="submitBtn" class="w-full bg-zinc-100 hover:bg-white text-zinc-950 font-medium py-2 px-4 rounded-md text-sm transition-colors flex items-center justify-center gap-2">
+                    <button type="button" id="submitBtn" onclick="handleFormSubmit(event)" class="w-full bg-zinc-100 hover:bg-white text-zinc-950 font-medium py-2 px-4 rounded-md text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer">
                         <span>Extract Viral Clip</span>
                     </button>
                 </form>
@@ -1055,8 +1055,16 @@
         }
 
         const form = document.getElementById('clipForm');
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
+        const submitBtn = document.getElementById('submitBtn');
+        const terminal = document.getElementById('terminal');
+        const progressBar = document.getElementById('progressBar');
+
+        if (form) {
+            form.addEventListener('submit', (e) => handleFormSubmit(e));
+        }
+
+        async function handleFormSubmit(e) {
+            if (e) e.preventDefault();
 
             if (currentInputMode === 'upload' && !selectedLocalFile) {
                 showToast("Please drag & drop or select an MP4 video file first! ⚠️");
@@ -1071,17 +1079,25 @@
                 }
             }
 
-            terminal.innerHTML = '';
-            progressBar.style.width = '0%';
-            progressBar.classList.remove('bg-rose-500');
-            document.getElementById('clipsContainer').innerHTML = `
-            <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 flex items-center justify-center h-[500px] text-zinc-500 text-sm font-mono text-center">
-                <span class="animate-pulse">Analyzing video...</span>
-            </div>
-            `;
+            if (terminal) terminal.innerHTML = '';
+            if (progressBar) {
+                progressBar.style.width = '0%';
+                progressBar.classList.remove('bg-rose-500');
+            }
             
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = `<span class="animate-spin h-4 w-4 border-2 border-zinc-950 border-t-transparent rounded-full"></span> <span>Processing...</span>`;
+            const clipsContainer = document.getElementById('clipsContainer');
+            if (clipsContainer) {
+                clipsContainer.innerHTML = `
+                <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 flex items-center justify-center h-[500px] text-zinc-500 text-sm font-mono text-center">
+                    <span class="animate-pulse">Analyzing video...</span>
+                </div>
+                `;
+            }
+            
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = `<span class="animate-spin h-4 w-4 border-2 border-zinc-950 border-t-transparent rounded-full"></span> <span>Processing...</span>`;
+            }
 
             try {
                 let res;
@@ -1157,10 +1173,12 @@
 
             } catch (err) {
                 logToTerminal(`Failed to create job: ${err.message}`, 'error');
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<span>Extract Viral Clip</span>';
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<span>Extract Viral Clip</span>';
+                }
             }
-        });
+        }
 
         function openPromptModal() {
             const val = document.getElementById('customPrompt').value || '';
