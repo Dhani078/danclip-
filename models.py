@@ -43,7 +43,11 @@ class VideoJob(Base):
     auto_reframe = Column(Boolean, default=False)
     word_karaoke = Column(Boolean, default=False)
     bgm_ducking = Column(Boolean, default=False)
-    layout_mode = Column(String(20), default="auto")
+    # Watermark, SFX, & Custom Font
+    watermark_path = Column(String(255), nullable=True)
+    watermark_position = Column(String(20), default="top_right")
+    custom_font_path = Column(String(255), nullable=True)
+    enable_sfx = Column(Boolean, default=True)
     webhook_url = Column(String, nullable=True)
     gemini_api_key = Column(String, nullable=True)
     

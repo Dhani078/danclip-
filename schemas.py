@@ -18,6 +18,8 @@ class ClipRequest(BaseModel):
     word_karaoke: bool = False
     bgm_ducking: bool = False
     layout_mode: str = "auto"
+    watermark_position: Optional[str] = "top_right"
+    enable_sfx: Optional[bool] = True
     webhook_url: Optional[str] = ""
     gemini_api_key: Optional[str] = ""
 
@@ -50,6 +52,10 @@ class VideoJobDetail(BaseModel):
     word_karaoke: Optional[bool]
     bgm_ducking: Optional[bool]
     layout_mode: Optional[str]
+    watermark_path: Optional[str]
+    watermark_position: Optional[str]
+    custom_font_path: Optional[str]
+    enable_sfx: Optional[bool]
     webhook_url: Optional[str]
     gemini_api_key: Optional[str]
     created_at: datetime

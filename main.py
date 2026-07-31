@@ -238,6 +238,10 @@ async def process_video_pipeline(job_id: str):
                     "auto_reframe": job.auto_reframe,
                     "word_karaoke": job.word_karaoke,
                     "bgm_ducking": job.bgm_ducking,
+                    "watermark_path": getattr(job, "watermark_path", None),
+                    "watermark_position": getattr(job, "watermark_position", "top_right"),
+                    "custom_font_path": getattr(job, "custom_font_path", None),
+                    "enable_sfx": getattr(job, "enable_sfx", True),
                     "layout_mode": getattr(job, "layout_mode", "auto"),
                     "layout_type": getattr(clip, "layout_type", "single"),
                     "speaker_focus": getattr(clip, "speaker_focus", "center"),
@@ -247,6 +251,14 @@ async def process_video_pipeline(job_id: str):
                 
                 # Generate high-impact viral cover image (.jpg)
                 await asyncio.to_thread(generate_viral_thumbnail, export_path, cover_export_path, hook_title_text, clip.viral_score)
+                
+                # Generate 3 AI Thumbnail Variants (15%, 50%, 85%)
+                from services.ffmpeg import generate_viral_thumbnails
+                thumb_vars = await generate_viral_thumbnails(raw_video_path, clip.start_time, clip.end_time, hook_title_text, export_path)
+                thumb_urls = [f"/exports/{os.path.basename(p)}" for p in thumb_vars]
+                
+                # Store thumbnail variants inside clip payload
+                clips_data[-1]["thumbnail_variants"] = thumb_urls
                 
                 output_paths.append(f"/exports/{job_id}_{clip.id}.mp4")
                 
@@ -554,6 +566,117 @@ async def rerender_clip(job_id: str, request: RerenderRequest, background_tasks:
                 
     background_tasks.add_task(process_rerender, job_id, request.subtitle_opacity)
     return {"message": "Re-render started", "job_id": job_id}
+
+
+class RetrimRequest(BaseModel):
+    clip_index: int
+    start_time: str
+    end_time: str
+
+@app.post("/api/v1/clips/{job_id}/retrim")
+async def retrim_clip_endpoint(job_id: str, request: RetrimRequest, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
+    job = await db.get(VideoJob, job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+        
+    clips_data = json.loads(job.clips_json) if job.clips_json else []
+    if request.clip_index < 0 or request.clip_index >= len(clips_data):
+        raise HTTPException(status_code=400, detail="Invalid clip index")
+        
+    clips_data[request.clip_index]["start_time"] = request.start_time
+    clips_data[request.clip_index]["end_time"] = request.end_time
+    job.clips_json = json.dumps(clips_data)
+    job.status = JobStatus.EDITING
+    job.progress_percentage = 80
+    job.current_step_message = f"Re-trimming clip #{request.clip_index+1} ({request.start_time} - {request.end_time})..."
+    await db.commit()
+    
+    async def process_retrim(jid: str, idx: int):
+        from database import AsyncSessionLocal
+        session = AsyncSessionLocal()
+        try:
+            j = await session.get(VideoJob, jid)
+            if not j:
+                return
+            c_data = json.loads(j.clips_json) if j.clips_json else []
+            target_clip = c_data[idx]
+            clip_id = target_clip.get("id")
+            raw_video_path = os.path.join(settings.STORAGE_DIR, "temp", f"{jid}.mp4")
+            temp_dir = os.path.join(settings.STORAGE_DIR, "temp")
+            export_path = os.path.join(settings.STORAGE_DIR, "exports", f"{jid}_{clip_id}.mp4")
+            
+            from services.whisper_stt import generate_whisper_srt
+            whisper_srt = await generate_whisper_srt(
+                raw_video_path, target_clip["start_time"], target_clip["end_time"], temp_dir, clip_id,
+                sub_size=j.subtitle_size, sub_color=j.subtitle_color, word_karaoke=j.word_karaoke,
+                hook_title=target_clip.get("hook_title", ""), subtitle_preset=getattr(j, "subtitle_preset", "hormozi"),
+                subtitle_position=getattr(j, "subtitle_position", "bottom"),
+                target_language=getattr(j, "target_language", "id")
+            )
+            
+            subtitle_path = None
+            if whisper_srt:
+                subtitle_path = os.path.join(temp_dir, f"{jid}_{clip_id}_retrim.ass")
+                with open(subtitle_path, "w", encoding="utf-8") as f:
+                    f.write(whisper_srt)
+                    
+            job_settings = {
+                "aspect_ratio": j.aspect_ratio,
+                "subtitle_color": j.subtitle_color,
+                "subtitle_size": j.subtitle_size,
+                "crop_style": j.crop_style,
+                "auto_reframe": j.auto_reframe,
+                "word_karaoke": j.word_karaoke,
+                "bgm_ducking": j.bgm_ducking,
+                "watermark_path": getattr(j, "watermark_path", None),
+                "watermark_position": getattr(j, "watermark_position", "top_right"),
+                "custom_font_path": getattr(j, "custom_font_path", None),
+                "enable_sfx": getattr(j, "enable_sfx", True),
+                "layout_mode": getattr(j, "layout_mode", "auto")
+            }
+            await render_viral_clip(raw_video_path, export_path, target_clip["start_time"], target_clip["end_time"], subtitle_path, job_settings, burn_subtitles=True)
+            
+            # Re-generate 3 AI Thumbnails
+            from services.ffmpeg import generate_viral_thumbnails
+            thumb_vars = await generate_viral_thumbnails(raw_video_path, target_clip["start_time"], target_clip["end_time"], target_clip.get("hook_title", ""), export_path)
+            c_data[idx]["thumbnail_variants"] = [f"/exports/{os.path.basename(p)}" for p in thumb_vars]
+            
+            j.clips_json = json.dumps(c_data)
+            j.status = JobStatus.COMPLETED
+            j.progress_percentage = 100
+            j.current_step_message = "Re-trim completed successfully."
+            await session.commit()
+        except Exception as e:
+            j.status = JobStatus.FAILED
+            j.error_log = str(e)
+            await session.commit()
+        finally:
+            await session.close()
+            
+    background_tasks.add_task(process_retrim, job_id, request.clip_index)
+    return {"message": "Re-trim processing started", "job_id": job_id}
+
+
+@app.post("/api/v1/upload_watermark")
+async def upload_watermark(file: UploadFile = File(...)):
+    asset_dir = os.path.join(os.path.dirname(__file__), "assets")
+    os.makedirs(asset_dir, exist_ok=True)
+    save_path = os.path.join(asset_dir, f"wm_{file.filename}")
+    with open(save_path, "wb") as f:
+        content = await file.read()
+        f.write(content)
+    return {"watermark_path": save_path, "filename": file.filename}
+
+
+@app.post("/api/v1/upload_font")
+async def upload_font(file: UploadFile = File(...)):
+    fonts_dir = os.path.join(os.path.dirname(__file__), "assets", "fonts")
+    os.makedirs(fonts_dir, exist_ok=True)
+    save_path = os.path.join(fonts_dir, file.filename)
+    with open(save_path, "wb") as f:
+        content = await file.read()
+        f.write(content)
+    return {"font_path": save_path, "filename": file.filename}
 
 
 class TikTokPublishRequest(BaseModel):
