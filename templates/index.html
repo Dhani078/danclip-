@@ -1155,11 +1155,13 @@
         function openPromptModal() {
             const val = document.getElementById('customPrompt').value || '';
             document.getElementById('modalCustomPrompt').value = val;
-            document.getElementById('promptModal').classList.remove('hidden');
+            const modal = document.getElementById('promptModal');
+            modal.style.display = 'flex';
         }
 
         function closePromptModal() {
-            document.getElementById('promptModal').classList.add('hidden');
+            const modal = document.getElementById('promptModal');
+            modal.style.display = 'none';
         }
 
         function savePromptFromModal() {
@@ -1181,7 +1183,7 @@
     </script>
 
     <!-- AI Director Fullscreen/Popup Editor Modal -->
-    <div id="promptModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div id="promptModal" style="display: none;" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[99999] flex items-center justify-center p-4">
         <div class="bg-zinc-950 border border-zinc-800 rounded-xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
             <div class="p-4 border-b border-zinc-800/80 flex items-center justify-between bg-zinc-900/50">
                 <div class="flex items-center gap-2">
