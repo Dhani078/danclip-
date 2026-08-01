@@ -157,7 +157,7 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
     """
     model = get_whisper_model()
     
-    initial_prompt = "Berikut adalah percakapan bahasa Indonesia yang bercampur dengan bahasa Inggris (mixed language). It is a very cool podcast."
+    initial_prompt = "Berikut adalah percakapan gaming dan live stream bahasa Indonesia."
     whisper_task = "translate" if target_language == "en" else "transcribe"
     
     segments, info = model.transcribe(
@@ -175,7 +175,7 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
     preset = (subtitle_preset or "hormozi").lower()
     
     # Position mapping for ASS Vertical Margin & Alignment
-    margin_v = 320
+    margin_v = 480
     alignment_val = 2
     
     pos = str(subtitle_position or "bottom").lower()
@@ -183,7 +183,7 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
         margin_v = 1500
         alignment_val = 8
     elif pos in ["middle", "center"]:
-        margin_v = 900
+        margin_v = 960
         alignment_val = 5
     elif pos.isdigit():
         margin_v = int(pos)
