@@ -212,32 +212,33 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
         effective_crop_style = "center_crop"
     
     if effective_crop_style in ["gaming", "gaming_header"]:
-        # Layout 1 (Saran 1): Master Dual Canvas (900px Gameplay Top + 1020px Streamer Facecam Bottom = 1920px Full Canvas)
+        # Layout Reference (Mednasah Style): Top Streamer Facecam (840px) + Bottom Gameplay (1080px) = 1920px Full Canvas (Zero Gap)
         ratio_x = float(face_info["face_center_x_ratio"]) if face_info.get("face_center_x_ratio") is not None else 0.85
         ratio_y = float(face_info["face_center_y_ratio"]) if face_info.get("face_center_y_ratio") is not None else 0.80
         fw_ratio = float(face_info.get("face_width_ratio", 0.15))
         
-        # Streamer Facecam Crop Box (Aspect ratio 1080x1020 = 1.0588)
-        tight_crop_w_expr = rf"min(in_w\, max(in_w * 0.32\, in_w * {fw_ratio:.3f} * 2.8))"
-        tight_crop_h_expr = rf"(({tight_crop_w_expr}) * 1020 / 1080)"
+        # Streamer Facecam Crop Box (Aspect ratio 1080x840 = 1.2857)
+        tight_crop_w_expr = rf"min(in_w\, max(in_w * 0.35\, in_w * {fw_ratio:.3f} * 2.8))"
+        tight_crop_h_expr = rf"(({tight_crop_w_expr}) * 840 / 1080)"
         
         top_x_expr = rf"max(0\, min(in_w - ({tight_crop_w_expr})\, in_w*{ratio_x:.3f} - ({tight_crop_w_expr})/2))"
         top_y_expr = rf"max(0\, min(in_h - ({tight_crop_h_expr})\, in_h*{ratio_y:.3f} - ({tight_crop_h_expr})/2))"
         
-        game_w = tw # 1080px
-        game_h = 900 # 900px height for 1.5x larger, highly detailed gameplay
-        cam_h = 1020 # 1020px height extending to 1920px (Zero gap!)
+        cam_w = tw   # 1080px
+        cam_h = 840  # 840px height for Top Streamer Facecam
+        game_w = tw  # 1080px
+        game_h = 1080# 1080px height for Bottom Gameplay
         
-        game_y = 0 # Gameplay at Top (0 to 900px)
-        cam_y = 900 # Streamer Facecam at Bottom (900 to 1920px)
+        cam_y = 0    # Streamer Facecam at TOP (0 to 840px)
+        game_y = 840 # Gameplay at BOTTOM (840 to 1920px)
         
         filter_complex = (
             f"[0:v]split=3[bg_raw][cam_raw][game_raw];"
             f"[bg_raw]scale={tw}:{th}:force_original_aspect_ratio=increase,crop={tw}:{th},boxblur=40:10,drawbox=x=0:y=0:w=iw:h=ih:color=black@0.5:t=fill[bg];"
-            f"[game_raw]crop=in_w*0.82:in_h:0:0,scale={game_w}:{game_h}:force_original_aspect_ratio=increase,crop={game_w}:{game_h}[game];"
             rf"[cam_raw]crop={tight_crop_w_expr}:{tight_crop_h_expr}:{top_x_expr}:{top_y_expr},scale={tw}:{cam_h}[cam];"
-            f"[bg][game]overlay=0:{game_y}[bg_game];"
-            f"[bg_game][cam]overlay=0:{cam_y}[v]"
+            f"[game_raw]crop=in_w*0.82:in_h:0:0,scale={game_w}:{game_h}:force_original_aspect_ratio=increase,crop={game_w}:{game_h}[game];"
+            f"[bg][cam]overlay=0:{cam_y}[bg_cam];"
+            f"[bg_cam][game]overlay=0:{game_y}[v]"
         )
     elif effective_crop_style == "gaming_overlay":
         # Layout 2: Smart Gaming Floating Box (Large Center Gameplay + Floating Balanced Facecam Box)

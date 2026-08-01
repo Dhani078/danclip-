@@ -156,10 +156,9 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
     """
     model = get_whisper_model()
     
-    initial_prompt = "Transkrip akurat percakapan bahasa Indonesia. Catat setiap kata yang diucapkan."
+    initial_prompt = "Transkrip ucapan percakapan bahasa Indonesia secara akurat."
     whisper_task = "translate" if target_language == "en" else "transcribe"
     
-    # Materialize segments into a list first so we can iterate multiple times
     raw_segments, info = model.transcribe(
         audio_path,
         language=language if language else "id",
@@ -168,23 +167,16 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
         beam_size=5,
         word_timestamps=True,
         vad_filter=True,
-        vad_parameters=dict(
-            min_silence_duration_ms=800,   # Don't cut mid-sentence (was 500 — too aggressive)
-            speech_pad_ms=400,             # Extra padding around detected speech
-        ),
-        no_speech_threshold=0.35,          # Lower = catch MORE speech even in noisy gaming audio (was 0.6)
-        log_prob_threshold=-1.0,           # Accept lower confidence words instead of dropping them
-        compression_ratio_threshold=2.4,   # Filter out repetitive hallucination text
-        condition_on_previous_text=True,   # Context-aware: next sentence knows previous sentence
-        hallucination_silence_threshold=1.5,  # Skip hallucinated text during >1.5s silence gaps
+        vad_parameters=dict(min_silence_duration_ms=500),
+        condition_on_previous_text=False,
     )
-    segments = list(raw_segments)  # Materialize generator to prevent timeout/incomplete reads
+    segments = list(raw_segments)
     
     actual_font_size = int(sub_size) * 4 if int(sub_size) < 30 else int(sub_size)
     preset = (subtitle_preset or "hormozi").lower()
     
     # Position mapping for ASS Vertical Margin & Alignment
-    margin_v = 480
+    margin_v = 300
     alignment_val = 2
     
     pos = str(subtitle_position or "bottom").lower()
@@ -192,7 +184,7 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
         margin_v = 1500
         alignment_val = 8
     elif pos in ["middle", "center"]:
-        margin_v = 960
+        margin_v = 900
         alignment_val = 5
     elif pos.isdigit():
         margin_v = int(pos)
