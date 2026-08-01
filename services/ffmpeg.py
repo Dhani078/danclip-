@@ -41,6 +41,8 @@ def detect_faces_and_recommend_layout(video_path: str, start_time_sec: float, du
         
         ratios_x = []
         ratios_y = []
+        ratios_w = []
+        ratios_h = []
         face_counts = []
         left_faces_x = []
         right_faces_x = []
@@ -80,6 +82,8 @@ def detect_faces_and_recommend_layout(video_path: str, start_time_sec: float, du
                 
                 ratios_x.append(face_center_x / float(w))
                 ratios_y.append(face_eye_y / float(h))
+                ratios_w.append(main_face[2] / float(w))
+                ratios_h.append(main_face[3] / float(h))
             else:
                 face_counts.append(0)
                 
@@ -92,6 +96,8 @@ def detect_faces_and_recommend_layout(video_path: str, start_time_sec: float, du
             
         median_x = float(np.median(ratios_x))
         median_y = float(np.median(ratios_y))
+        median_w = float(np.median(ratios_w)) if ratios_w else 0.15
+        median_h = float(np.median(ratios_h)) if ratios_h else 0.15
         
         bounded_x = max(0.1, min(0.9, median_x))
         bounded_y = max(0.1, min(0.9, median_y))
@@ -99,7 +105,7 @@ def detect_faces_and_recommend_layout(video_path: str, start_time_sec: float, du
 
         # Split screen threshold: If at least 3 sampled frames have 2 distinct side-by-side speakers
         is_split = len(left_faces_x) >= 3 and max_faces >= 2
-        is_gaming = (max_faces == 1) and (bounded_x < 0.38 or bounded_x > 0.62 or bounded_y < 0.35)
+        is_gaming = (max_faces == 1) and (bounded_x < 0.38 or bounded_x > 0.62 or bounded_y < 0.35 or bounded_y > 0.65)
         
         result = {
             "num_faces": max_faces, 
@@ -107,6 +113,8 @@ def detect_faces_and_recommend_layout(video_path: str, start_time_sec: float, du
             "is_gaming": is_gaming,
             "face_center_x_ratio": bounded_x, 
             "face_center_y_ratio": bounded_y, 
+            "face_width_ratio": median_w,
+            "face_height_ratio": median_h,
             "use_blur_pad": False
         }
         
@@ -117,7 +125,7 @@ def detect_faces_and_recommend_layout(video_path: str, start_time_sec: float, du
         return result
     except Exception as e:
         print(f"[YuNet Face Tracker Warning] {e}")
-        return {"num_faces": 1, "is_split_screen": False, "is_gaming": False, "face_center_x_ratio": 0.5, "use_blur_pad": False}
+        return {"num_faces": 1, "is_split_screen": False, "is_gaming": False, "face_center_x_ratio": 0.5, "face_center_y_ratio": 0.5, "face_width_ratio": 0.15, "face_height_ratio": 0.15, "use_blur_pad": False}
 
 
 async def render_viral_clip(input_path: str, output_path: str, start_time: str, end_time: str, subtitle_path: str = None, settings: dict = None, burn_subtitles: bool = False):
@@ -198,28 +206,31 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
         effective_crop_style = "center_crop"
     
     if effective_crop_style == "gaming":
-        # Ultra Smart Uncropped Gaming Split Screen:
-        # Top Section (Streamer Facecam): Tracked & Zoomed on Streamer's Face (1080x720)
-        # Middle/Bottom Section (Gameplay): 100% Full Uncropped 16:9 Widescreen Gameplay (1080x607, 0% cropped!)
-        # Background: Aesthetic Dark Boxblur Gameplay to fill 1080x1920 canvas smoothly
-        ratio_x = float(face_info["face_center_x_ratio"]) if face_info.get("face_center_x_ratio") is not None else 0.5
-        ratio_y = float(face_info["face_center_y_ratio"]) if face_info.get("face_center_y_ratio") is not None else 0.25
+        # Ultra Smart Gaming Layout (Tight Streamer Facecam Header + 100% Uncropped Gameplay)
+        ratio_x = float(face_info["face_center_x_ratio"]) if face_info.get("face_center_x_ratio") is not None else 0.85
+        ratio_y = float(face_info["face_center_y_ratio"]) if face_info.get("face_center_y_ratio") is not None else 0.80
+        fw_ratio = float(face_info.get("face_width_ratio", 0.15))
+        fh_ratio = float(face_info.get("face_height_ratio", 0.15))
         
-        top_h = int(th * 0.38) # ~729px height for streamer facecam
+        # Calculate tight crop bounding box around facecam (~2.2x detected face size)
+        crop_factor = max(fw_ratio * 2.2, 0.22)
+        tight_crop_w_expr = rf"min(in_w\, max(320\, in_w * {crop_factor:.3f}))"
+        tight_crop_h_expr = rf"min(in_h\, max(240\, in_h * {crop_factor:.3f}))"
+        
+        top_x_expr = rf"max(0\, min(in_w - ({tight_crop_w_expr})\, in_w*{ratio_x:.3f} - ({tight_crop_w_expr})/2))"
+        top_y_expr = rf"max(0\, min(in_h - ({tight_crop_h_expr})\, in_h*{ratio_y:.3f} - ({tight_crop_h_expr})/2))"
+        
+        top_h = 480 # Compact 480px top header for streamer facecam
         game_w = tw # 1080px
         game_h = int(tw * 9 / 16) # 607px height for 100% uncropped 16:9 gameplay
         
-        scale_top = rf"scale=w='max({tw}\, iw*{top_h}/ih)':h='max({top_h}\, ih*{tw}/iw)'"
-        top_x_expr = rf"max(0\, min(in_w-{tw}\, in_w*{ratio_x:.3f} - {tw}/2))"
-        top_y_expr = rf"max(0\, min(in_h-{top_h}\, in_h*{ratio_y:.3f} - {top_h}/2))"
-        
         cam_y = 60
-        game_y = cam_y + top_h + 30
+        game_y = cam_y + top_h + 30 # 570px
         
         filter_complex = (
             f"[0:v]split=3[bg_raw][cam_raw][game_raw];"
             f"[bg_raw]scale={tw}:{th}:force_original_aspect_ratio=increase,crop={tw}:{th},boxblur=40:10,drawbox=x=0:y=0:w=iw:h=ih:color=black@0.5:t=fill[bg];"
-            rf"[cam_raw]{scale_top},crop={tw}:{top_h}:{top_x_expr}:{top_y_expr}[cam];"
+            rf"[cam_raw]crop={tight_crop_w_expr}:{tight_crop_h_expr}:{top_x_expr}:{top_y_expr},scale={tw}:{top_h}:force_original_aspect_ratio=increase,crop={tw}:{top_h}[cam];"
             f"[game_raw]scale={game_w}:{game_h}:force_original_aspect_ratio=decrease[game];"
             f"[bg][cam]overlay=0:{cam_y}[bg_cam];"
             f"[bg_cam][game]overlay=0:{game_y}[v]"
