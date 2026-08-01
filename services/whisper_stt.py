@@ -59,23 +59,27 @@ from faster_whisper import WhisperModel
 # Global model instance (lazy-loaded once)
 _whisper_model = None
 
-def get_whisper_model():
+def get_whisper_model(force_cpu: bool = False):
     global _whisper_model
+    if force_cpu:
+        total_threads = os.cpu_count() or 4
+        print(f"[Whisper] Fail-safe fallback: Loading 'medium' on CPU ({total_threads} threads)...")
+        return WhisperModel("medium", device="cpu", compute_type="int8", cpu_threads=total_threads)
+        
     if _whisper_model is None:
         model_name = os.environ.get("WHISPER_MODEL", None)
         try:
-            # Try GPU CUDA first (for local machine with GPU)
-            target_gpu_model = model_name or "large-v3"
+            # Default to 'medium' for rock-solid stability and zero GPU VRAM OOM errors
+            target_gpu_model = model_name or "medium"
             print(f"[Whisper] Loading model '{target_gpu_model}' (NVIDIA GPU CUDA int8 mode)...")
             _whisper_model = WhisperModel(target_gpu_model, device="cuda", compute_type="int8")
             print(f"[Whisper] SUCCESSFULLY LOADED '{target_gpu_model}' ON NVIDIA GPU!")
         except Exception as e:
             try:
-                target_gpu_model = model_name or "medium"
+                target_gpu_model = model_name or "small"
                 print(f"[Whisper] GPU CUDA notice ({e}). Trying GPU '{target_gpu_model}'...")
                 _whisper_model = WhisperModel(target_gpu_model, device="cuda", compute_type="int8")
             except Exception as e2:
-                # CPU mode: Maximize CPU performance using all available CPU threads
                 target_cpu_model = model_name or "small"
                 total_threads = os.cpu_count() or 4
                 print(f"[Whisper] GPU notice ({e2}). Running on CPU '{target_cpu_model}' (int8, max {total_threads} threads)...")
@@ -98,25 +102,23 @@ def extract_clip_audio(input_video: str, start_time: str, end_time: str, output_
     try:
         t1 = parse_time(start_time)
         t2 = parse_time(end_time)
-        duration = str(t2 - t1)
-        if (t2 - t1) <= 0:
-            duration = "60"
+        duration = t2 - t1
+        if duration <= 0:
+            duration = 30
     except Exception:
-        duration = "60"
+        t1 = 0
+        duration = 30
 
     cmd = [
         "ffmpeg", "-y",
         "-ss", str(t1),
         "-i", input_video,
-        "-t", duration,
-        "-vn",
-        "-ar", "16000",     # Whisper expects 16kHz
-        "-ac", "1",          # Mono
-        "-c:a", "pcm_s16le", # WAV format
+        "-t", str(duration),
+        "-vn", "-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1",
         output_audio
     ]
-    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    return result.returncode == 0
+    res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return res.returncode == 0
 
 
 def apply_multicolor_highlight(clean_word: str, default_color: str = "&H00FFFFFF") -> str:
