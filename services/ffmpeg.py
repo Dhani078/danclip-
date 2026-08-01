@@ -198,27 +198,31 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
         effective_crop_style = "center_crop"
     
     if effective_crop_style == "gaming":
-        # Smart Gaming Split Screen (Streamer Facecam Top + Main Gameplay Bottom)
-        ratio_x = float(face_info["face_center_x_ratio"]) if face_info.get("face_center_x_ratio") is not None else 0.25
+        # Ultra Smart Uncropped Gaming Split Screen:
+        # Top Section (Streamer Facecam): Tracked & Zoomed on Streamer's Face (1080x720)
+        # Middle/Bottom Section (Gameplay): 100% Full Uncropped 16:9 Widescreen Gameplay (1080x607, 0% cropped!)
+        # Background: Aesthetic Dark Boxblur Gameplay to fill 1080x1920 canvas smoothly
+        ratio_x = float(face_info["face_center_x_ratio"]) if face_info.get("face_center_x_ratio") is not None else 0.5
         ratio_y = float(face_info["face_center_y_ratio"]) if face_info.get("face_center_y_ratio") is not None else 0.25
         
-        top_h = int(th * 0.38)
-        bot_h = th - top_h
+        top_h = int(th * 0.38) # ~729px height for streamer facecam
+        game_w = tw # 1080px
+        game_h = int(tw * 9 / 16) # 607px height for 100% uncropped 16:9 gameplay
         
         scale_top = rf"scale=w='max({tw}\, iw*{top_h}/ih)':h='max({top_h}\, ih*{tw}/iw)'"
-        scale_bot = rf"scale=w='max({tw}\, iw*{bot_h}/ih)':h='max({bot_h}\, ih*{tw}/iw)'"
-        
         top_x_expr = rf"max(0\, min(in_w-{tw}\, in_w*{ratio_x:.3f} - {tw}/2))"
         top_y_expr = rf"max(0\, min(in_h-{top_h}\, in_h*{ratio_y:.3f} - {top_h}/2))"
         
-        bot_x_expr = rf"(in_w-{tw})/2"
-        bot_y_expr = rf"(in_h-{bot_h})/2"
+        cam_y = 60
+        game_y = cam_y + top_h + 30
         
         filter_complex = (
-            f"[0:v]split=2[cam_raw][game_raw];"
-            rf"[cam_raw]{scale_top},crop={tw}:{top_h}:{top_x_expr}:{top_y_expr}[top];"
-            rf"[game_raw]{scale_bot},crop={tw}:{bot_h}:{bot_x_expr}:{bot_y_expr}[bottom];"
-            f"[top][bottom]vstack[v]"
+            f"[0:v]split=3[bg_raw][cam_raw][game_raw];"
+            f"[bg_raw]scale={tw}:{th}:force_original_aspect_ratio=increase,crop={tw}:{th},boxblur=40:10,drawbox=x=0:y=0:w=iw:h=ih:color=black@0.5:t=fill[bg];"
+            rf"[cam_raw]{scale_top},crop={tw}:{top_h}:{top_x_expr}:{top_y_expr}[cam];"
+            f"[game_raw]scale={game_w}:{game_h}:force_original_aspect_ratio=decrease[game];"
+            f"[bg][cam]overlay=0:{cam_y}[bg_cam];"
+            f"[bg_cam][game]overlay=0:{game_y}[v]"
         )
     elif effective_crop_style == "center_crop":
         if auto_reframe and should_split and face_info["num_faces"] >= 2:
