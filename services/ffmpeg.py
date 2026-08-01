@@ -99,10 +99,12 @@ def detect_faces_and_recommend_layout(video_path: str, start_time_sec: float, du
 
         # Split screen threshold: If at least 3 sampled frames have 2 distinct side-by-side speakers
         is_split = len(left_faces_x) >= 3 and max_faces >= 2
+        is_gaming = (max_faces == 1) and (bounded_x < 0.38 or bounded_x > 0.62 or bounded_y < 0.35)
         
         result = {
             "num_faces": max_faces, 
             "is_split_screen": is_split,
+            "is_gaming": is_gaming,
             "face_center_x_ratio": bounded_x, 
             "face_center_y_ratio": bounded_y, 
             "use_blur_pad": False
@@ -115,12 +117,13 @@ def detect_faces_and_recommend_layout(video_path: str, start_time_sec: float, du
         return result
     except Exception as e:
         print(f"[YuNet Face Tracker Warning] {e}")
-        return {"num_faces": 1, "is_split_screen": False, "face_center_x_ratio": 0.5, "use_blur_pad": False}
+        return {"num_faces": 1, "is_split_screen": False, "is_gaming": False, "face_center_x_ratio": 0.5, "use_blur_pad": False}
+
 
 async def render_viral_clip(input_path: str, output_path: str, start_time: str, end_time: str, subtitle_path: str = None, settings: dict = None, burn_subtitles: bool = False):
     """
     Renders the video using dynamic settings (aspect ratio, crop style).
-    Integrates YuNet face detection & adaptive scene detection (B-roll, podcast dual-speaker split screen, single speaker tracking).
+    Integrates YuNet face detection & adaptive scene detection (B-roll, podcast dual-speaker split screen, smart gaming split screen, single speaker tracking).
     """
     if settings is None or not isinstance(settings, dict):
         settings = {}
@@ -148,7 +151,7 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
     bgm_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "bgm.mp3")
     has_bgm = bgm_ducking and os.path.exists(bgm_path)
 
-    layout_mode = settings.get("layout_mode", "auto") # "auto", "single", "split"
+    layout_mode = settings.get("layout_mode", "auto") # "auto", "single", "split", "gaming"
     
     def parse_time(ts_str):
         parts = ts_str.split(':')
@@ -172,21 +175,52 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
     face_info = await asyncio.to_thread(detect_faces_and_recommend_layout, input_path, float(t1), float(duration))
     print(f"[FFmpeg Engine] Multi-Keyframe Scene & Face Analysis: {face_info}")
     
-    # Determine split screen mode
-    if layout_mode == "split":
+    # Determine split screen / gaming mode
+    if layout_mode == "gaming" or crop_style == "gaming":
+        is_gaming_mode = True
+        should_split = False
+    elif layout_mode == "split":
+        is_gaming_mode = False
         should_split = True
     elif layout_mode == "single":
+        is_gaming_mode = False
         should_split = False
     else: # "auto" mode
-        should_split = face_info.get("is_split_screen", False)
+        is_gaming_mode = face_info.get("is_gaming", False)
+        should_split = face_info.get("is_split_screen", False) if not is_gaming_mode else False
         
     # Auto-adapt to blur_pad ONLY if zero faces found by YuNet across frames, or user explicitly chose blur_pad
     if crop_style == "blur_pad" or (crop_style == "center_crop" and face_info["use_blur_pad"]):
         effective_crop_style = "blur_pad"
+    elif is_gaming_mode:
+        effective_crop_style = "gaming"
     else:
         effective_crop_style = "center_crop"
     
-    if effective_crop_style == "center_crop":
+    if effective_crop_style == "gaming":
+        # Smart Gaming Split Screen (Streamer Facecam Top + Main Gameplay Bottom)
+        ratio_x = float(face_info["face_center_x_ratio"]) if face_info.get("face_center_x_ratio") is not None else 0.25
+        ratio_y = float(face_info["face_center_y_ratio"]) if face_info.get("face_center_y_ratio") is not None else 0.25
+        
+        top_h = int(th * 0.38)
+        bot_h = th - top_h
+        
+        scale_top = rf"scale=w='max({tw}\, iw*{top_h}/ih)':h='max({top_h}\, ih*{tw}/iw)'"
+        scale_bot = rf"scale=w='max({tw}\, iw*{bot_h}/ih)':h='max({bot_h}\, ih*{tw}/iw)'"
+        
+        top_x_expr = rf"max(0\, min(in_w-{tw}\, in_w*{ratio_x:.3f} - {tw}/2))"
+        top_y_expr = rf"max(0\, min(in_h-{top_h}\, in_h*{ratio_y:.3f} - {top_h}/2))"
+        
+        bot_x_expr = rf"(in_w-{tw})/2"
+        bot_y_expr = rf"(in_h-{bot_h})/2"
+        
+        filter_complex = (
+            f"[0:v]split=2[cam_raw][game_raw];"
+            rf"[cam_raw]{scale_top},crop={tw}:{top_h}:{top_x_expr}:{top_y_expr}[top];"
+            rf"[game_raw]{scale_bot},crop={tw}:{bot_h}:{bot_x_expr}:{bot_y_expr}[bottom];"
+            f"[top][bottom]vstack[v]"
+        )
+    elif effective_crop_style == "center_crop":
         if auto_reframe and should_split and face_info["num_faces"] >= 2:
             # Opus Clip Smart Dual-Speaker Podcast Split Screen
             left_x = face_info.get("face_left_x_ratio", 0.28)
