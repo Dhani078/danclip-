@@ -212,34 +212,37 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
         effective_crop_style = "center_crop"
     
     if effective_crop_style in ["gaming", "gaming_header"]:
-        # Layout 1: Smart Gaming Layout (100% Uncropped Gameplay Top + Natural Streamer Facecam Bottom)
+        # Layout 1: Smart Gaming Layout (100% Uncropped Gameplay Top + Dead-Center Streamer Facecam Bottom)
         ratio_x = float(face_info["face_center_x_ratio"]) if face_info.get("face_center_x_ratio") is not None else 0.85
         ratio_y = float(face_info["face_center_y_ratio"]) if face_info.get("face_center_y_ratio") is not None else 0.80
         fw_ratio = float(face_info.get("face_width_ratio", 0.15))
         fh_ratio = float(face_info.get("face_height_ratio", 0.15))
         
+        # Crop tight around streamer webcam box ONLY (avoids game UI leakage)
+        crop_w_factor = max(fw_ratio * 2.2, 0.25)
+        crop_h_factor = max(fh_ratio * 2.2, 0.35)
+        
+        tight_crop_w_expr = rf"min(in_w\, max(320\, in_w * {crop_w_factor:.3f}))"
+        tight_crop_h_expr = rf"min(in_h\, max(240\, in_h * {crop_h_factor:.3f}))"
+        
+        top_x_expr = rf"max(0\, min(in_w - ({tight_crop_w_expr})\, in_w*{ratio_x:.3f} - ({tight_crop_w_expr})/2))"
+        top_y_expr = rf"max(0\, min(in_h - ({tight_crop_h_expr})\, in_h*{ratio_y:.3f} - ({tight_crop_h_expr})/2))"
+        
         game_w = tw # 1080px
         game_h = int(tw * 9 / 16) # 607px height for 100% uncropped 16:9 gameplay
+        cam_h = 480 # Compact 480px section for streamer facecam
+        
         game_y = 60 # Gameplay at Top
-        cam_y = game_y + game_h # 667px -> Facecam directly flush touching bottom of gameplay (Zero Gap!)
-        cam_h = th - cam_y # 1253px bottom space
-        
-        # Calculate natural wider crop box matching 1080:650 aspect ratio
-        tight_crop_w_expr = rf"min(in_w\, max(in_w * 0.45\, in_w * {fw_ratio:.3f} * 3.5))"
-        tight_crop_h_expr = rf"(({tight_crop_w_expr}) * 650 / 1080)"
-        
-        # Start top_y right above hair line to eliminate top black border from original video stream overlay
-        start_y_ratio = max(0.0, ratio_y - fh_ratio * 0.7)
-        top_x_expr = rf"max(0\, min(in_w - ({tight_crop_w_expr})\, in_w*{ratio_x:.3f} - ({tight_crop_w_expr})/2))"
-        top_y_expr = rf"max(0\, min(in_h - ({tight_crop_h_expr})\, in_h*{start_y_ratio:.3f}))"
+        cam_y = game_y + game_h + 30 # 697px -> Facecam at Bottom
         
         filter_complex = (
             f"[0:v]split=3[bg_raw][cam_raw][game_raw];"
             f"[bg_raw]scale={tw}:{th}:force_original_aspect_ratio=increase,crop={tw}:{th},boxblur=40:10,drawbox=x=0:y=0:w=iw:h=ih:color=black@0.5:t=fill[bg];"
             f"[game_raw]scale={game_w}:{game_h}:force_original_aspect_ratio=decrease[game];"
-            rf"[cam_raw]crop={tight_crop_w_expr}:{tight_crop_h_expr}:{top_x_expr}:{top_y_expr},scale={tw}:650[cam];"
+            rf"[cam_raw]crop={tight_crop_w_expr}:{tight_crop_h_expr}:{top_x_expr}:{top_y_expr},"
+            f"scale=-2:{cam_h}:force_original_aspect_ratio=decrease[cam];"
             f"[bg][game]overlay=0:{game_y}[bg_game];"
-            f"[bg_game][cam]overlay=0:{cam_y}[v]"
+            f"[bg_game][cam]overlay=(main_w-overlay_w)/2:{cam_y}[v]"
         )
     elif effective_crop_style == "gaming_overlay":
         # Layout 2: Smart Gaming Floating Box (Large Center Gameplay + Floating Natural Facecam Box)
