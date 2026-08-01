@@ -157,17 +157,20 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
     """
     model = get_whisper_model()
     
-    initial_prompt = "Berikut adalah percakapan gaming dan live stream bahasa Indonesia."
+    initial_prompt = "Transkrip ucapan percakapan bahasa Indonesia secara langsung dan akurat."
     whisper_task = "translate" if target_language == "en" else "transcribe"
     
     segments, info = model.transcribe(
         audio_path,
-        language=language,
+        language=language if language else "id",
         task=whisper_task,
         initial_prompt=initial_prompt,
         beam_size=5,
         word_timestamps=True,
         vad_filter=True,
+        vad_parameters=dict(min_silence_duration_ms=500),
+        no_speech_threshold=0.6,
+        compression_ratio_threshold=2.4,
         condition_on_previous_text=False,
     )
     
