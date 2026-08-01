@@ -247,16 +247,14 @@ async def process_video_pipeline(job_id: str):
                 }
                 await render_viral_clip(raw_video_path, export_path, clip.start_time, clip.end_time, subtitle_path, job_settings, burn_subtitles=True)
                 
-                # Generate high-impact viral cover image (.jpg)
-                await asyncio.to_thread(generate_viral_thumbnail, export_path, cover_export_path, hook_title_text, clip.viral_score)
+                # Generate high-impact viral cover image (.jpg) - DISABLED BY USER REQUEST
+                # await asyncio.to_thread(generate_viral_thumbnail, export_path, cover_export_path, hook_title_text, clip.viral_score)
                 
-                # Generate 3 AI Thumbnail Variants (15%, 50%, 85%)
-                from services.ffmpeg import generate_viral_thumbnails
-                thumb_vars = await generate_viral_thumbnails(raw_video_path, clip.start_time, clip.end_time, hook_title_text, export_path)
-                thumb_urls = [f"/exports/{os.path.basename(p)}" for p in thumb_vars]
-                
-                # Store thumbnail variants inside clip payload
-                clips_data[-1]["thumbnail_variants"] = thumb_urls
+                # Generate 3 AI Thumbnail Variants - DISABLED BY USER REQUEST
+                # from services.ffmpeg import generate_viral_thumbnails
+                # thumb_vars = await generate_viral_thumbnails(raw_video_path, clip.start_time, clip.end_time, hook_title_text, export_path)
+                # thumb_urls = [f"/exports/{os.path.basename(p)}" for p in thumb_vars]
+                clips_data[-1]["thumbnail_variants"] = []
                 
                 output_paths.append(f"/exports/{job_id}_{clip.id}.mp4")
                 
@@ -652,10 +650,11 @@ async def retrim_clip_endpoint(job_id: str, request: RetrimRequest, background_t
             }
             await render_viral_clip(raw_video_path, export_path, target_clip["start_time"], target_clip["end_time"], subtitle_path, job_settings, burn_subtitles=True)
             
-            # Re-generate 3 AI Thumbnails
-            from services.ffmpeg import generate_viral_thumbnails
-            thumb_vars = await generate_viral_thumbnails(raw_video_path, target_clip["start_time"], target_clip["end_time"], target_clip.get("hook_title", ""), export_path)
-            c_data[idx]["thumbnail_variants"] = [f"/exports/{os.path.basename(p)}" for p in thumb_vars]
+            # Re-generate 3 AI Thumbnails - DISABLED BY USER REQUEST
+            # from services.ffmpeg import generate_viral_thumbnails
+            # thumb_vars = await generate_viral_thumbnails(raw_video_path, target_clip["start_time"], target_clip["end_time"], target_clip.get("hook_title", ""), export_path)
+            # c_data[idx]["thumbnail_variants"] = [f"/exports/{os.path.basename(p)}" for p in thumb_vars]
+            c_data[idx]["thumbnail_variants"] = []
             
             j.clips_json = json.dumps(c_data)
             j.status = JobStatus.COMPLETED
