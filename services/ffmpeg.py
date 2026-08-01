@@ -212,16 +212,14 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
         effective_crop_style = "center_crop"
     
     if effective_crop_style in ["gaming", "gaming_header"]:
-        # Layout 1: Smart Gaming Layout (100% Uncropped Gameplay Top + Tight Streamer Facecam Bottom)
+        # Layout 1: Smart Gaming Layout (100% Uncropped Gameplay Top + Natural Streamer Facecam Bottom)
         ratio_x = float(face_info["face_center_x_ratio"]) if face_info.get("face_center_x_ratio") is not None else 0.85
         ratio_y = float(face_info["face_center_y_ratio"]) if face_info.get("face_center_y_ratio") is not None else 0.80
         fw_ratio = float(face_info.get("face_width_ratio", 0.15))
-        fh_ratio = float(face_info.get("face_height_ratio", 0.15))
         
-        # Calculate tight crop bounding box around facecam (~2.2x detected face size)
-        crop_factor = max(fw_ratio * 2.2, 0.22)
-        tight_crop_w_expr = rf"min(in_w\, max(320\, in_w * {crop_factor:.3f}))"
-        tight_crop_h_expr = rf"min(in_h\, max(240\, in_h * {crop_factor:.3f}))"
+        # Calculate natural wider crop box around facecam (42% screen width, 1080x480 aspect ratio match = 0% over-zoom)
+        tight_crop_w_expr = rf"min(in_w\, max(in_w * 0.42\, in_w * {fw_ratio:.3f} * 3.2))"
+        tight_crop_h_expr = rf"(({tight_crop_w_expr}) * 480 / 1080)"
         
         top_x_expr = rf"max(0\, min(in_w - ({tight_crop_w_expr})\, in_w*{ratio_x:.3f} - ({tight_crop_w_expr})/2))"
         top_y_expr = rf"max(0\, min(in_h - ({tight_crop_h_expr})\, in_h*{ratio_y:.3f} - ({tight_crop_h_expr})/2))"
@@ -237,20 +235,18 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
             f"[0:v]split=3[bg_raw][cam_raw][game_raw];"
             f"[bg_raw]scale={tw}:{th}:force_original_aspect_ratio=increase,crop={tw}:{th},boxblur=40:10,drawbox=x=0:y=0:w=iw:h=ih:color=black@0.5:t=fill[bg];"
             f"[game_raw]scale={game_w}:{game_h}:force_original_aspect_ratio=decrease[game];"
-            rf"[cam_raw]crop={tight_crop_w_expr}:{tight_crop_h_expr}:{top_x_expr}:{top_y_expr},scale={tw}:{cam_h}:force_original_aspect_ratio=increase,crop={tw}:{cam_h}[cam];"
+            rf"[cam_raw]crop={tight_crop_w_expr}:{tight_crop_h_expr}:{top_x_expr}:{top_y_expr},scale={tw}:{cam_h}[cam];"
             f"[bg][game]overlay=0:{game_y}[bg_game];"
             f"[bg_game][cam]overlay=0:{cam_y}[v]"
         )
     elif effective_crop_style == "gaming_overlay":
-        # Layout 2: Smart Gaming Floating Box (Large Center Gameplay + Floating Facecam Box with Border)
+        # Layout 2: Smart Gaming Floating Box (Large Center Gameplay + Floating Natural Facecam Box)
         ratio_x = float(face_info["face_center_x_ratio"]) if face_info.get("face_center_x_ratio") is not None else 0.85
         ratio_y = float(face_info["face_center_y_ratio"]) if face_info.get("face_center_y_ratio") is not None else 0.80
         fw_ratio = float(face_info.get("face_width_ratio", 0.15))
-        fh_ratio = float(face_info.get("face_height_ratio", 0.15))
         
-        crop_factor = max(fw_ratio * 2.2, 0.22)
-        tight_crop_w_expr = rf"min(in_w\, max(320\, in_w * {crop_factor:.3f}))"
-        tight_crop_h_expr = rf"min(in_h\, max(240\, in_h * {crop_factor:.3f}))"
+        tight_crop_w_expr = rf"min(in_w\, max(in_w * 0.32\, in_w * {fw_ratio:.3f} * 2.8))"
+        tight_crop_h_expr = tight_crop_w_expr
         
         top_x_expr = rf"max(0\, min(in_w - ({tight_crop_w_expr})\, in_w*{ratio_x:.3f} - ({tight_crop_w_expr})/2))"
         top_y_expr = rf"max(0\, min(in_h - ({tight_crop_h_expr})\, in_h*{ratio_y:.3f} - ({tight_crop_h_expr})/2))"
@@ -264,7 +260,7 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
             f"[bg_raw]scale={tw}:{th}:force_original_aspect_ratio=increase,crop={tw}:{th},boxblur=40:10,drawbox=x=0:y=0:w=iw:h=ih:color=black@0.5:t=fill[bg];"
             f"[game_raw]scale={game_w}:{game_h}:force_original_aspect_ratio=decrease[game];"
             rf"[cam_raw]crop={tight_crop_w_expr}:{tight_crop_h_expr}:{top_x_expr}:{top_y_expr},"
-            f"scale={facebox_size}:{facebox_size}:force_original_aspect_ratio=increase,crop={facebox_size}:{facebox_size},"
+            f"scale={facebox_size}:{facebox_size},"
             f"drawbox=x=0:y=0:w=iw:h=ih:color=white@0.6:t=4[cam];"
             f"[bg][game]overlay=0:260[bg_game];"
             f"[bg_game][cam]overlay=660:920[v]"
