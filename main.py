@@ -545,7 +545,12 @@ async def rerender_clip(job_id: str, request: RerenderRequest, background_tasks:
                         "auto_reframe": j.auto_reframe,
                         "word_karaoke": j.word_karaoke,
                         "bgm_ducking": j.bgm_ducking,
-                        "subtitle_opacity": opacity
+                        "subtitle_opacity": opacity,
+                        "watermark_path": getattr(j, "watermark_path", None),
+                        "watermark_position": getattr(j, "watermark_position", "top_right"),
+                        "custom_font_path": getattr(j, "custom_font_path", None),
+                        "enable_sfx": getattr(j, "enable_sfx", True),
+                        "layout_mode": getattr(j, "layout_mode", "auto")
                     }
                     
                     from services.ffmpeg import render_viral_clip
