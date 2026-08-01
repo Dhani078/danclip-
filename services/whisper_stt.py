@@ -63,22 +63,14 @@ def get_whisper_model():
     global _whisper_model
     if _whisper_model is None:
         model_name = os.environ.get("WHISPER_MODEL", "large-v3")
-        try:
-            print(f"[Whisper] Loading model '{model_name}' on NVIDIA GPU CUDA (int8 mode for 3GB VRAM)...")
-            _whisper_model = WhisperModel(
-                model_name,
-                device="cuda",
-                compute_type="int8",
-                device_index=0
-            )
-            print(f"[Whisper] SUCCESSFULLY LOADED '{model_name}' ON NVIDIA GPU CUDA!")
-        except Exception as e:
-            try:
-                print(f"[Whisper CUDA fallback] Trying 'large-v2' on GPU...")
-                _whisper_model = WhisperModel("large-v2", device="cuda", compute_type="int8", device_index=0)
-            except Exception as e2:
-                print(f"[Whisper CUDA fallback] Trying 'medium' on GPU...")
-                _whisper_model = WhisperModel("medium", device="cuda", compute_type="int8", device_index=0)
+        print(f"[Whisper] Loading model '{model_name}' on NVIDIA GPU CUDA (int8 mode)...")
+        _whisper_model = WhisperModel(
+            model_name,
+            device="cuda",
+            compute_type="int8",
+            device_index=0
+        )
+        print(f"[Whisper] SUCCESSFULLY LOADED '{model_name}' ON NVIDIA GPU CUDA!")
     return _whisper_model
 
 
