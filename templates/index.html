@@ -1127,8 +1127,12 @@
                 if (!currentJobId) return;
                 const startVal = document.getElementById(`trimStart_${index}`).value;
                 const endVal = document.getElementById(`trimEnd_${index}`).value;
+                const cropStyleEl = document.getElementById('cropStyle');
+                const layoutModeEl = document.getElementById('layoutMode');
+                const cropStyleVal = cropStyleEl ? cropStyleEl.value : 'center_crop';
+                const layoutModeVal = layoutModeEl ? layoutModeEl.value : 'auto';
 
-                logToTerminal(`Re-trimming clip #${index + 1} (${startVal} -> ${endVal})...`);
+                logToTerminal(`Re-trimming clip #${index + 1} (${startVal} -> ${endVal}) [Style: ${cropStyleVal}]...`);
                 showToast(`✂️ Re-trimming clip #${index + 1}...`);
 
                 try {
@@ -1138,7 +1142,9 @@
                         body: JSON.stringify({
                             clip_index: index,
                             start_time: startVal,
-                            end_time: endVal
+                            end_time: endVal,
+                            crop_style: cropStyleVal,
+                            layout_mode: layoutModeVal
                         })
                     });
 

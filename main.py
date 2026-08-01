@@ -576,6 +576,8 @@ class RetrimRequest(BaseModel):
     clip_index: int
     start_time: str
     end_time: str
+    crop_style: Optional[str] = None
+    layout_mode: Optional[str] = None
 
 @app.post("/api/v1/clips/{job_id}/retrim")
 async def retrim_clip_endpoint(job_id: str, request: RetrimRequest, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
@@ -583,6 +585,11 @@ async def retrim_clip_endpoint(job_id: str, request: RetrimRequest, background_t
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
         
+    if request.crop_style:
+        job.crop_style = request.crop_style
+    if request.layout_mode:
+        job.layout_mode = request.layout_mode
+
     clips_data = json.loads(job.clips_json) if job.clips_json else []
     if request.clip_index < 0 or request.clip_index >= len(clips_data):
         raise HTTPException(status_code=400, detail="Invalid clip index")
