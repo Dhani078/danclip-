@@ -184,29 +184,35 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
     print(f"[FFmpeg Engine] Multi-Keyframe Scene & Face Analysis: {face_info}")
     
     # Determine split screen / gaming mode
-    if layout_mode == "gaming" or crop_style == "gaming":
+    if layout_mode in ["gaming", "gaming_header", "gaming_overlay"] or crop_style in ["gaming", "gaming_header", "gaming_overlay"]:
         is_gaming_mode = True
+        gaming_variant = crop_style if crop_style in ["gaming_header", "gaming_overlay"] else (
+            layout_mode if layout_mode in ["gaming_header", "gaming_overlay"] else "gaming_header"
+        )
         should_split = False
     elif layout_mode == "split":
         is_gaming_mode = False
+        gaming_variant = "gaming_header"
         should_split = True
     elif layout_mode == "single":
         is_gaming_mode = False
+        gaming_variant = "gaming_header"
         should_split = False
     else: # "auto" mode
         is_gaming_mode = face_info.get("is_gaming", False)
+        gaming_variant = "gaming_header"
         should_split = face_info.get("is_split_screen", False) if not is_gaming_mode else False
         
     # Auto-adapt to blur_pad ONLY if zero faces found by YuNet across frames, or user explicitly chose blur_pad
     if crop_style == "blur_pad" or (crop_style == "center_crop" and face_info["use_blur_pad"]):
         effective_crop_style = "blur_pad"
     elif is_gaming_mode:
-        effective_crop_style = "gaming"
+        effective_crop_style = gaming_variant
     else:
         effective_crop_style = "center_crop"
     
-    if effective_crop_style == "gaming":
-        # Ultra Smart Gaming Layout (Tight Streamer Facecam Header + 100% Uncropped Gameplay)
+    if effective_crop_style in ["gaming", "gaming_header"]:
+        # Layout 1: Smart Gaming Header (Tight Streamer Facecam Header Top + 100% Uncropped Gameplay)
         ratio_x = float(face_info["face_center_x_ratio"]) if face_info.get("face_center_x_ratio") is not None else 0.85
         ratio_y = float(face_info["face_center_y_ratio"]) if face_info.get("face_center_y_ratio") is not None else 0.80
         fw_ratio = float(face_info.get("face_width_ratio", 0.15))
@@ -234,6 +240,34 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
             f"[game_raw]scale={game_w}:{game_h}:force_original_aspect_ratio=decrease[game];"
             f"[bg][cam]overlay=0:{cam_y}[bg_cam];"
             f"[bg_cam][game]overlay=0:{game_y}[v]"
+        )
+    elif effective_crop_style == "gaming_overlay":
+        # Layout 2: Smart Gaming Floating Box (Large Center Gameplay + Floating Facecam Box with Border)
+        ratio_x = float(face_info["face_center_x_ratio"]) if face_info.get("face_center_x_ratio") is not None else 0.85
+        ratio_y = float(face_info["face_center_y_ratio"]) if face_info.get("face_center_y_ratio") is not None else 0.80
+        fw_ratio = float(face_info.get("face_width_ratio", 0.15))
+        fh_ratio = float(face_info.get("face_height_ratio", 0.15))
+        
+        crop_factor = max(fw_ratio * 2.2, 0.22)
+        tight_crop_w_expr = rf"min(in_w\, max(320\, in_w * {crop_factor:.3f}))"
+        tight_crop_h_expr = rf"min(in_h\, max(240\, in_h * {crop_factor:.3f}))"
+        
+        top_x_expr = rf"max(0\, min(in_w - ({tight_crop_w_expr})\, in_w*{ratio_x:.3f} - ({tight_crop_w_expr})/2))"
+        top_y_expr = rf"max(0\, min(in_h - ({tight_crop_h_expr})\, in_h*{ratio_y:.3f} - ({tight_crop_h_expr})/2))"
+        
+        game_w = tw # 1080px
+        game_h = int(tw * 9 / 16) # 607px
+        facebox_size = 380
+        
+        filter_complex = (
+            f"[0:v]split=3[bg_raw][cam_raw][game_raw];"
+            f"[bg_raw]scale={tw}:{th}:force_original_aspect_ratio=increase,crop={tw}:{th},boxblur=40:10,drawbox=x=0:y=0:w=iw:h=ih:color=black@0.5:t=fill[bg];"
+            f"[game_raw]scale={game_w}:{game_h}:force_original_aspect_ratio=decrease[game];"
+            rf"[cam_raw]crop={tight_crop_w_expr}:{tight_crop_h_expr}:{top_x_expr}:{top_y_expr},"
+            f"scale={facebox_size}:{facebox_size}:force_original_aspect_ratio=increase,crop={facebox_size}:{facebox_size},"
+            f"drawbox=x=0:y=0:w=iw:h=ih:color=white@0.6:t=4[cam];"
+            f"[bg][game]overlay=0:260[bg_game];"
+            f"[bg_game][cam]overlay=660:920[v]"
         )
     elif effective_crop_style == "center_crop":
         if auto_reframe and should_split and face_info["num_faces"] >= 2:
