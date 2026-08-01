@@ -414,6 +414,30 @@
         const progressBar = document.getElementById('progressBar');
         const statusBadge = document.getElementById('statusBadge');
 
+        window.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const paramJobId = urlParams.get('job_id');
+            
+            if (paramJobId) {
+                currentJobId = paramJobId;
+                connectJobSSE(currentJobId);
+            } else {
+                try {
+                    const res = await fetch('/api/v1/clips/history');
+                    if (res.ok) {
+                        const history = await res.json();
+                        if (history && history.length > 0) {
+                            currentJobId = history[0].id;
+                            logToTerminal(`📥 Connected to latest job: ${currentJobId} (${history[0].status})`, 'success');
+                            connectJobSSE(currentJobId);
+                        }
+                    }
+                } catch (e) {
+                    console.warn("Could not load job history:", e);
+                }
+            }
+        });
+
         function showToast(message, duration = 3000) {
             const toast = document.getElementById('toast');
             if (!toast) return;
