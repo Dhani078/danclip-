@@ -212,29 +212,29 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
         effective_crop_style = "center_crop"
     
     if effective_crop_style in ["gaming", "gaming_header"]:
-        # Layout 1: Smart Gaming Layout (100% Uncropped Gameplay Top + Medium Balanced Streamer Facecam Bottom)
+        # Layout 1 (Saran 1): Master Dual Canvas (900px Gameplay Top + 1020px Streamer Facecam Bottom = 1920px Full Canvas)
         ratio_x = float(face_info["face_center_x_ratio"]) if face_info.get("face_center_x_ratio") is not None else 0.85
         ratio_y = float(face_info["face_center_y_ratio"]) if face_info.get("face_center_y_ratio") is not None else 0.80
         fw_ratio = float(face_info.get("face_width_ratio", 0.15))
         
-        # Medium Balanced Zoom (28% screen width, 1080x480 aspect match = perfect head + shoulders framing)
-        tight_crop_w_expr = rf"min(in_w\, max(in_w * 0.28\, in_w * {fw_ratio:.3f} * 2.5))"
-        tight_crop_h_expr = rf"(({tight_crop_w_expr}) * 480 / 1080)"
+        # Streamer Facecam Crop Box (Aspect ratio 1080x1020 = 1.0588)
+        tight_crop_w_expr = rf"min(in_w\, max(in_w * 0.32\, in_w * {fw_ratio:.3f} * 2.8))"
+        tight_crop_h_expr = rf"(({tight_crop_w_expr}) * 1020 / 1080)"
         
         top_x_expr = rf"max(0\, min(in_w - ({tight_crop_w_expr})\, in_w*{ratio_x:.3f} - ({tight_crop_w_expr})/2))"
         top_y_expr = rf"max(0\, min(in_h - ({tight_crop_h_expr})\, in_h*{ratio_y:.3f} - ({tight_crop_h_expr})/2))"
         
         game_w = tw # 1080px
-        game_h = int(tw * 9 / 16) # 607px height for 100% uncropped 16:9 gameplay
-        cam_h = 480 # Compact 480px section for streamer facecam
+        game_h = 900 # 900px height for 1.5x larger, highly detailed gameplay
+        cam_h = 1020 # 1020px height extending to 1920px (Zero gap!)
         
-        game_y = 60 # Gameplay at Top
-        cam_y = game_y + game_h + 30 # 697px -> Facecam at Bottom
+        game_y = 0 # Gameplay at Top (0 to 900px)
+        cam_y = 900 # Streamer Facecam at Bottom (900 to 1920px)
         
         filter_complex = (
             f"[0:v]split=3[bg_raw][cam_raw][game_raw];"
             f"[bg_raw]scale={tw}:{th}:force_original_aspect_ratio=increase,crop={tw}:{th},boxblur=40:10,drawbox=x=0:y=0:w=iw:h=ih:color=black@0.5:t=fill[bg];"
-            f"[game_raw]scale={game_w}:{game_h}:force_original_aspect_ratio=decrease[game];"
+            f"[game_raw]crop=in_w*0.82:in_h:0:0,scale={game_w}:{game_h}:force_original_aspect_ratio=increase,crop={game_w}:{game_h}[game];"
             rf"[cam_raw]crop={tight_crop_w_expr}:{tight_crop_h_expr}:{top_x_expr}:{top_y_expr},scale={tw}:{cam_h}[cam];"
             f"[bg][game]overlay=0:{game_y}[bg_game];"
             f"[bg_game][cam]overlay=0:{cam_y}[v]"
@@ -334,12 +334,12 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
         extra_inputs.extend(["-i", sfx_path])
         input_count += 1
 
-    # Subtitle ASS Burn
+    # Subtitle ASS Burn (With Windows colon escaping)
     v_current = "[v]"
     if subtitle_path and burn_subtitles and os.path.exists(subtitle_path):
-        ass_path_escaped = subtitle_path.replace('\\', '/')
+        ass_path_escaped = subtitle_path.replace('\\', '/').replace(':', '\\:')
         if custom_font_path and os.path.exists(custom_font_path):
-            fonts_dir = os.path.dirname(custom_font_path).replace('\\', '/')
+            fonts_dir = os.path.dirname(custom_font_path).replace('\\', '/').replace(':', '\\:')
             sub_filter = f"{v_current}ass='{ass_path_escaped}':fontsdir='{fonts_dir}'[v_sub]"
         else:
             sub_filter = f"{v_current}ass='{ass_path_escaped}'[v_sub]"
