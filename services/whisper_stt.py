@@ -74,14 +74,13 @@ def get_whisper_model():
                 target_gpu_model = model_name or "medium"
                 print(f"[Whisper] GPU CUDA notice ({e}). Trying GPU '{target_gpu_model}'...")
                 _whisper_model = WhisperModel(target_gpu_model, device="cuda", compute_type="int8")
-                print(f"[Whisper] Successfully loaded '{target_gpu_model}' on NVIDIA GPU!")
             except Exception as e2:
-                # Fallback to CPU mode (Railway cloud limit 1GB RAM)
-                # Use 'small' model on CPU (~400MB RAM) to avoid Out Of Memory
+                # CPU mode: Maximize CPU performance using all available CPU threads
                 target_cpu_model = model_name or "small"
-                print(f"[Whisper] GPU notice ({e2}). Running on CPU '{target_cpu_model}' (int8, 2 threads)...")
-                _whisper_model = WhisperModel(target_cpu_model, device="cpu", compute_type="int8", cpu_threads=2)
-                print(f"[Whisper] Model '{target_cpu_model}' loaded on CPU (RAM optimized for Cloud).")
+                total_threads = os.cpu_count() or 4
+                print(f"[Whisper] GPU notice ({e2}). Running on CPU '{target_cpu_model}' (int8, max {total_threads} threads)...")
+                _whisper_model = WhisperModel(target_cpu_model, device="cpu", compute_type="int8", cpu_threads=total_threads)
+                print(f"[Whisper] Model '{target_cpu_model}' loaded on CPU with ALL {total_threads} THREADS UNLOCKED!")
     return _whisper_model
 
 
