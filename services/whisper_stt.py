@@ -156,7 +156,14 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
     model = get_whisper_model()
     
     lang_param = language if (language and language.lower() != "auto") else None
-    initial_prompt = "Accurate transcript of spoken speech and audio dialogue with perfect spelling." if lang_param == "en" else "Ini adalah transkrip ucapan percakapan bahasa Indonesia yang sangat akurat, ejaan sempurna, tata bahasa benar, dan tanpa typo."
+    
+    if lang_param == "id":
+        initial_prompt = "Ini adalah transkrip ucapan percakapan bahasa Indonesia yang sangat akurat, ejaan sempurna, tata bahasa benar, dan tanpa typo."
+    elif lang_param == "en":
+        initial_prompt = "Accurate transcript of spoken speech and audio dialogue with perfect spelling and correct grammar."
+    else:
+        # Universal prompt for all other languages globally
+        initial_prompt = "Accurate transcription of the spoken audio with perfect spelling, correct grammar, and without any typos."
     whisper_task = "translate" if target_language == "en" else "transcribe"
     
     try:
