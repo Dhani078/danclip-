@@ -1259,6 +1259,7 @@
                         formData.append('subtitle_position', safeVal('subtitlePosition', 'bottom'));
                         formData.append('target_language', safeVal('targetLanguage', 'id'));
                         formData.append('watermark_position', safeVal('watermarkPosition', 'bottom_right'));
+                        formData.append('watermark_path', document.getElementById('watermarkPath').value || '');
                         formData.append('enable_sfx', safeCheck('enableSFX', true));
                         formData.append('custom_prompt', safeVal('customPrompt', ''));
                         formData.append('clip_count', safeInt('clipCount', 3));
@@ -1289,6 +1290,7 @@
                                 subtitle_position: safeVal('subtitlePosition', 'bottom'),
                                 target_language: safeVal('targetLanguage', 'id'),
                                 watermark_position: safeVal('watermarkPosition', 'bottom_right'),
+                                watermark_path: document.getElementById('watermarkPath').value || '',
                                 enable_sfx: safeCheck('enableSFX', true),
                                 custom_prompt: safeVal('customPrompt', ''),
                                 clip_count: safeInt('clipCount', 3),
