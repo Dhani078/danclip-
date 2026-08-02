@@ -316,7 +316,7 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
     watermark_input_idx = None
     if has_watermark:
         watermark_input_idx = input_count
-        extra_inputs.extend(["-i", watermark_path])
+        extra_inputs.extend(["-loop", "1", "-i", watermark_path])
         input_count += 1
         
     # 2. BGM Input
@@ -368,7 +368,7 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
         elif watermark_pos == "safe_middle_left":
             w_pos_expr = "x=120:y=(main_h-overlay_h)/2"
             
-        wm_filter = f"[{watermark_input_idx}:v]scale=160:-1[wm];{v_current}[wm]overlay={w_pos_expr}[v_wm]"
+        wm_filter = f"[{watermark_input_idx}:v]scale=160:-1[wm];{v_current}[wm]overlay={w_pos_expr}:shortest=1[v_wm]"
         filter_complex += f";{wm_filter}"
         v_current = "[v_wm]"
 
