@@ -59,14 +59,21 @@
     </div>
 
     <!-- Header -->
-    <header class="border-b border-zinc-800 bg-zinc-950 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
-        <div class="flex items-center gap-3">
+    <header class="border-b border-zinc-800 bg-zinc-950 px-6 py-4 flex items-center justify-between sticky top-0 z-50">
+        <div class="flex items-center gap-3 w-1/4">
             <div class="h-6 w-6 rounded bg-zinc-100 flex items-center justify-center text-zinc-950 font-bold text-xs">AC
             </div>
             <h1 class="font-medium text-sm text-zinc-100 tracking-tight">AI Auto-Clipper</h1>
         </div>
-        <div class="flex items-center gap-4 text-xs font-mono text-zinc-400">
-            <div class="flex items-center gap-1.5">
+        
+        <!-- Navigation Bar -->
+        <nav class="flex items-center gap-6 justify-center w-2/4">
+            <button onclick="showPage('home')" id="navHome" class="text-sm font-semibold text-emerald-400 border-b-2 border-emerald-400 pb-1 transition-colors">✨ Studio (Editor)</button>
+            <button onclick="showPage('myclips')" id="navMyClips" class="text-sm font-semibold text-zinc-400 hover:text-zinc-200 border-b-2 border-transparent pb-1 transition-colors">📂 My Clips (History)</button>
+        </nav>
+
+        <div class="flex items-center justify-end gap-4 text-xs font-mono text-zinc-400 w-1/4">
+            <div class="flex items-center gap-1.5 hidden md:flex">
                 <span class="relative flex h-2 w-2">
                     <span
                         class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -74,19 +81,22 @@
                 </span>
                 DB Connected
             </div>
-            <div class="flex items-center gap-1.5">
+            <div class="flex items-center gap-1.5 hidden md:flex">
                 <span class="relative flex h-2 w-2">
                     <span
                         class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
-                Gemini Auto-Fallback
+                Gemini Active
             </div>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="flex-1 max-w-[1600px] w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <!-- Main Content Wrapper -->
+    <main class="flex-1 max-w-[1600px] w-full mx-auto p-6">
+        
+        <!-- Page: Home Studio -->
+        <div id="pageHome" class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
         <!-- Left Column: Input & Terminal -->
         <div class="lg:col-span-4 flex flex-col gap-6">
@@ -401,6 +411,20 @@
                 Submit a video to extract viral clips.
             </div>
         </div>
+        </div>
+
+        <!-- Page: My Clips (History) -->
+        <div id="pageMyClips" class="hidden flex-col gap-6">
+            <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 shadow-xl min-h-[500px]">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-lg font-bold text-zinc-100 flex items-center gap-2">📂 My Clips History <span class="text-xs font-normal text-zinc-400 font-mono">(Recent Jobs)</span></h2>
+                    <button onclick="loadHistory()" class="text-xs font-medium bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-4 py-2 rounded-md transition shadow-md">🔄 Refresh History</button>
+                </div>
+                <div id="historyGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <div class="text-zinc-500 text-sm italic py-10 col-span-full text-center">Loading history...</div>
+                </div>
+            </div>
+        </div>
     </main>
 
     <script>
@@ -439,6 +463,79 @@
                 }
             }
         });
+
+        function showPage(pageId) {
+            document.getElementById('pageHome').classList.add('hidden');
+            document.getElementById('pageHome').classList.remove('grid');
+            document.getElementById('pageMyClips').classList.add('hidden');
+            document.getElementById('pageMyClips').classList.remove('flex');
+            
+            if (pageId === 'home') {
+                document.getElementById('pageHome').classList.remove('hidden');
+                document.getElementById('pageHome').classList.add('grid');
+                document.getElementById('navHome').classList.add('text-emerald-400', 'border-emerald-400');
+                document.getElementById('navHome').classList.remove('text-zinc-400', 'border-transparent');
+                document.getElementById('navMyClips').classList.remove('text-emerald-400', 'border-emerald-400');
+                document.getElementById('navMyClips').classList.add('text-zinc-400', 'border-transparent');
+            } else if (pageId === 'myclips') {
+                document.getElementById('pageMyClips').classList.remove('hidden');
+                document.getElementById('pageMyClips').classList.add('flex');
+                document.getElementById('navMyClips').classList.add('text-emerald-400', 'border-emerald-400');
+                document.getElementById('navMyClips').classList.remove('text-zinc-400', 'border-transparent');
+                document.getElementById('navHome').classList.remove('text-emerald-400', 'border-emerald-400');
+                document.getElementById('navHome').classList.add('text-zinc-400', 'border-transparent');
+                loadHistory();
+            }
+        }
+
+        async function loadHistory() {
+            const grid = document.getElementById('historyGrid');
+            grid.innerHTML = '<div class="text-zinc-500 text-sm italic py-10 col-span-full text-center animate-pulse">Loading history...</div>';
+            try {
+                const res = await fetch('/api/v1/clips/history');
+                if (!res.ok) throw new Error('Failed to fetch history');
+                const history = await res.json();
+                if (!history || history.length === 0) {
+                    grid.innerHTML = '<div class="text-zinc-500 text-sm italic py-10 col-span-full text-center">No history found. Create your first clip!</div>';
+                    return;
+                }
+                
+                let html = '';
+                history.forEach(job => {
+                    const statusColor = job.status === 'COMPLETED' ? 'text-emerald-400' : (job.status === 'FAILED' ? 'text-red-400' : 'text-amber-400');
+                    const clipsCount = job.clips_json ? JSON.parse(job.clips_json).length : 0;
+                    const dateStr = new Date(job.created_at || Date.now()).toLocaleString('id-ID', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
+                    
+                    html += `
+                    <div class="bg-zinc-950 border border-zinc-800 hover:border-emerald-500/50 rounded-lg p-4 flex flex-col gap-3 transition cursor-pointer group relative overflow-hidden" onclick="loadJobFromHistory('${job.id}')">
+                        <div class="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <div class="flex justify-between items-start relative z-10">
+                            <h3 class="text-sm font-semibold text-zinc-200 line-clamp-2 group-hover:text-emerald-400 transition" title="${job.video_title || job.youtube_url}">${job.video_title || job.youtube_url}</h3>
+                        </div>
+                        <div class="text-[10px] text-zinc-500 font-mono relative z-10">${dateStr}</div>
+                        <div class="flex items-center justify-between mt-auto pt-2 border-t border-zinc-900 relative z-10">
+                            <span class="text-[11px] font-mono font-medium px-2 py-0.5 rounded bg-zinc-900 ${statusColor}">${job.status}</span>
+                            <span class="text-[11px] text-zinc-400 font-mono font-semibold bg-zinc-900 px-2 py-0.5 rounded">${clipsCount} Clips</span>
+                        </div>
+                    </div>
+                    `;
+                });
+                grid.innerHTML = html;
+            } catch (e) {
+                grid.innerHTML = `<div class="text-red-400 text-sm py-10 col-span-full text-center">Error loading history: ${e.message}</div>`;
+            }
+        }
+
+        function loadJobFromHistory(jobId) {
+            showPage('home');
+            showToast(`Loading job ${jobId.substring(0, 8)}...`);
+            currentJobId = jobId;
+            if (pollInterval) clearInterval(pollInterval);
+            document.getElementById('clipsContainer').innerHTML = '<div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 flex items-center justify-center h-[500px] text-emerald-400 text-sm font-mono text-center animate-pulse">Connecting to job data...</div>';
+            terminal.innerHTML = '';
+            logToTerminal(`📥 Connecting to job history: ${jobId}`, 'info');
+            connectJobSSE(jobId);
+        }
 
         function showToast(message, duration = 3000) {
             const toast = document.getElementById('toast');
