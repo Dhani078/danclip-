@@ -191,9 +191,12 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
         except Exception:
             pass
             
-        # 3. Reload fresh model and retry
-        fresh_model = get_whisper_model()
-        raw_segments, info = fresh_model.transcribe(
+        # 3. Fallback to CPU to guarantee completion without hanging
+        print("[Whisper] GPU OOM encountered. Falling back to CPU mode (this will be slower but guaranteed to finish)...")
+        from faster_whisper import WhisperModel
+        model_name = os.environ.get("WHISPER_MODEL", "large-v3")
+        cpu_model = WhisperModel(model_name, device="cpu", compute_type="int8")
+        raw_segments, info = cpu_model.transcribe(
             audio_path,
             language=lang_param,
             task=whisper_task,
