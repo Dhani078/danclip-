@@ -111,6 +111,7 @@ async def process_video_pipeline(job_id: str):
                     "--fragment-retries", "10",
                     "--socket-timeout", "30",
                     "--concurrent-fragments", "5",
+                    "--extractor-args", "youtube:player_client=android,web",
                     "--js-runtimes", "node"
                 ]
                 
