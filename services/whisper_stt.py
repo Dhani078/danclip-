@@ -146,7 +146,13 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
     """
     import gc
     gc.collect()
-    
+    try:
+        import torch
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+    except Exception:
+        pass
+        
     model = get_whisper_model()
     
     lang_param = language if (language and language.lower() != "auto") else None
