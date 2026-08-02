@@ -171,6 +171,8 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
             vad_filter=True,
             vad_parameters=dict(min_silence_duration_ms=500),
             condition_on_previous_text=False,
+            log_prob_threshold=None,
+            no_speech_threshold=0.95,
         )
         segments = list(raw_segments)
     except Exception as gpu_err:
@@ -206,6 +208,8 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
             vad_filter=True,
             vad_parameters=dict(min_silence_duration_ms=500),
             condition_on_previous_text=False,
+            log_prob_threshold=None,
+            no_speech_threshold=0.95,
         )
         segments = list(raw_segments)
     
