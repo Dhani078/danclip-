@@ -175,10 +175,11 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
             initial_prompt=initial_prompt,
             beam_size=5,
             word_timestamps=True,
-            vad_filter=False,
-            condition_on_previous_text=True,
-            log_prob_threshold=None,
-            no_speech_threshold=0.99,
+            vad_filter=True,
+            vad_parameters=dict(min_silence_duration_ms=1000, speech_pad_ms=500),
+            condition_on_previous_text=False,
+            log_prob_threshold=-1.0,
+            no_speech_threshold=0.6,
         )
         segments = list(raw_segments)
     except Exception as gpu_err:
@@ -211,10 +212,11 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
             initial_prompt=initial_prompt,
             beam_size=5,
             word_timestamps=True,
-            vad_filter=False,
-            condition_on_previous_text=True,
-            log_prob_threshold=None,
-            no_speech_threshold=0.99,
+            vad_filter=True,
+            vad_parameters=dict(min_silence_duration_ms=1000, speech_pad_ms=500),
+            condition_on_previous_text=False,
+            log_prob_threshold=-1.0,
+            no_speech_threshold=0.6,
         )
         segments = list(raw_segments)
     
