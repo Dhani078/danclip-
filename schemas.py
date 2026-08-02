@@ -19,6 +19,7 @@ class ClipRequest(BaseModel):
     bgm_ducking: bool = False
     layout_mode: str = "auto"
     watermark_position: Optional[str] = "top_right"
+    watermark_path: Optional[str] = ""
     enable_sfx: Optional[bool] = True
     webhook_url: Optional[str] = ""
     gemini_api_key: Optional[str] = ""
