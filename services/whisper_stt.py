@@ -156,23 +156,22 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
     model = get_whisper_model()
     
     lang_param = language if (language and language.lower() != "auto") else None
-    initial_prompt = "Accurate transcript of spoken speech and audio dialogue." if lang_param == "en" else "Transkrip ucapan percakapan secara akurat."
+    initial_prompt = "Accurate transcript of spoken speech and audio dialogue with perfect spelling." if lang_param == "en" else "Ini adalah transkrip ucapan percakapan bahasa Indonesia yang sangat akurat, ejaan sempurna, tata bahasa benar, dan tanpa typo."
     whisper_task = "translate" if target_language == "en" else "transcribe"
     
     try:
-        # Beam size = 1 (greedy decoding) saves ~70% CUDA VRAM on 3GB GPUs while maintaining large-v3 accuracy!
+        # Beam size 5 provides better accuracy (less typos). VAD is disabled to prevent dropping speech in loud background music.
         raw_segments, info = model.transcribe(
             audio_path,
             language=lang_param,
             task=whisper_task,
             initial_prompt=initial_prompt,
-            beam_size=1,
+            beam_size=5,
             word_timestamps=True,
-            vad_filter=True,
-            vad_parameters=dict(min_silence_duration_ms=500),
-            condition_on_previous_text=False,
+            vad_filter=False,
+            condition_on_previous_text=True,
             log_prob_threshold=None,
-            no_speech_threshold=0.95,
+            no_speech_threshold=0.99,
         )
         segments = list(raw_segments)
     except Exception as gpu_err:
@@ -203,13 +202,12 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
             language=lang_param,
             task=whisper_task,
             initial_prompt=initial_prompt,
-            beam_size=1,
+            beam_size=5,
             word_timestamps=True,
-            vad_filter=True,
-            vad_parameters=dict(min_silence_duration_ms=500),
-            condition_on_previous_text=False,
+            vad_filter=False,
+            condition_on_previous_text=True,
             log_prob_threshold=None,
-            no_speech_threshold=0.95,
+            no_speech_threshold=0.99,
         )
         segments = list(raw_segments)
     
