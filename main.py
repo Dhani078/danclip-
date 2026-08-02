@@ -696,7 +696,7 @@ async def upload_font(file: UploadFile = File(...)):
 
 class TikTokPublishRequest(BaseModel):
     video_path: str
-    access_token: str
+    access_token: Optional[str] = None
     title: Optional[str] = ""
     privacy_level: Optional[str] = "SELF_ONLY"
     post_mode: Optional[str] = "inbox"
@@ -713,7 +713,7 @@ async def publish_to_tiktok_endpoint(req: TikTokPublishRequest):
 
     res = await publish_video_to_tiktok(
         full_video_path,
-        req.access_token,
+        req.access_token or settings.TIKTOK_ACCESS_TOKEN,
         title=req.title or "",
         privacy_level=req.privacy_level or "SELF_ONLY",
         post_mode=req.post_mode or "inbox"
@@ -737,6 +737,11 @@ async def publish_to_tiktok_endpoint(req: TikTokPublishRequest):
 
     return res
 
+@app.get("/api/v1/tiktok/login")
+async def tiktok_login_redirect():
+    url = f"https://www.tiktok.com/v2/auth/authorize/?client_key={settings.TIKTOK_CLIENT_KEY}&response_type=code&scope=user.info.basic,video.upload,video.publish&redirect_uri=http://127.0.0.1:8000/api/v1/tiktok/callback&state=auto_clip_web"
+    return RedirectResponse(url)
+
 @app.get("/api/v1/tiktok/callback")
 async def tiktok_oauth_callback(code: str = ""):
     if not code:
@@ -752,7 +757,7 @@ async def tiktok_oauth_callback(code: str = ""):
         "client_secret": settings.TIKTOK_CLIENT_SECRET,
         "code": code,
         "grant_type": "authorization_code",
-        "redirect_uri": "http://localhost:8000/api/v1/tiktok/callback"
+        "redirect_uri": "http://127.0.0.1:8000/api/v1/tiktok/callback"
     }
     async with httpx.AsyncClient(timeout=15.0) as client:
         res = await client.post(url, data=data, headers=headers)
