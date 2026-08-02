@@ -739,7 +739,7 @@ async def publish_to_tiktok_endpoint(req: TikTokPublishRequest):
 
 @app.get("/api/v1/tiktok/login")
 async def tiktok_login_redirect():
-    url = f"https://www.tiktok.com/v2/auth/authorize/?client_key={settings.TIKTOK_CLIENT_KEY}&response_type=code&scope=user.info.basic,video.upload,video.publish&redirect_uri=http://127.0.0.1:8000/api/v1/tiktok/callback&state=auto_clip_web"
+    url = f"https://www.tiktok.com/v2/auth/authorize/?client_key={settings.TIKTOK_CLIENT_KEY}&response_type=code&scope=user.info.basic,video.upload,video.publish&redirect_uri=https://autoclipweb.com/api/v1/tiktok/callback&state=auto_clip_web"
     return RedirectResponse(url)
 
 @app.get("/api/v1/tiktok/callback")
@@ -757,7 +757,7 @@ async def tiktok_oauth_callback(code: str = ""):
         "client_secret": settings.TIKTOK_CLIENT_SECRET,
         "code": code,
         "grant_type": "authorization_code",
-        "redirect_uri": "http://127.0.0.1:8000/api/v1/tiktok/callback"
+        "redirect_uri": "https://autoclipweb.com/api/v1/tiktok/callback"
     }
     async with httpx.AsyncClient(timeout=15.0) as client:
         res = await client.post(url, data=data, headers=headers)
