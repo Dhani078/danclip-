@@ -403,7 +403,12 @@ async def upload_local_video(
 
 @app.get("/api/v1/clips/history", response_model=List[VideoJobDetail])
 async def list_clips(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(VideoJob).order_by(VideoJob.created_at.desc()).limit(20))
+    result = await db.execute(
+        select(VideoJob)
+        .where(VideoJob.status == JobStatus.COMPLETED)
+        .order_by(VideoJob.created_at.desc())
+        .limit(20)
+    )
     jobs = result.scalars().all()
     return jobs
 
