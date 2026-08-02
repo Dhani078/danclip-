@@ -62,7 +62,7 @@ _whisper_model = None
 def get_whisper_model():
     global _whisper_model
     if _whisper_model is None:
-        model_name = os.environ.get("WHISPER_MODEL", "large-v3")
+        model_name = os.environ.get("WHISPER_MODEL", "large-v2")
         print(f"[Whisper] Loading model '{model_name}' on NVIDIA GPU CUDA (int8 mode)...")
         _whisper_model = WhisperModel(
             model_name,
@@ -176,10 +176,8 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
             beam_size=5,
             word_timestamps=True,
             vad_filter=True,
-            vad_parameters=dict(min_silence_duration_ms=1000, speech_pad_ms=500),
-            condition_on_previous_text=False,
-            log_prob_threshold=-1.0,
-            no_speech_threshold=0.6,
+            vad_parameters=dict(min_silence_duration_ms=500, speech_pad_ms=400),
+            condition_on_previous_text=True,
         )
         segments = list(raw_segments)
     except Exception as gpu_err:
@@ -203,7 +201,7 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
         # 3. Fallback to CPU to guarantee completion without hanging
         print("[Whisper] GPU OOM encountered. Falling back to CPU mode (this will be slower but guaranteed to finish)...")
         from faster_whisper import WhisperModel
-        model_name = os.environ.get("WHISPER_MODEL", "large-v3")
+        model_name = os.environ.get("WHISPER_MODEL", "large-v2")
         cpu_model = WhisperModel(model_name, device="cpu", compute_type="int8")
         raw_segments, info = cpu_model.transcribe(
             audio_path,
@@ -213,10 +211,8 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
             beam_size=5,
             word_timestamps=True,
             vad_filter=True,
-            vad_parameters=dict(min_silence_duration_ms=1000, speech_pad_ms=500),
-            condition_on_previous_text=False,
-            log_prob_threshold=-1.0,
-            no_speech_threshold=0.6,
+            vad_parameters=dict(min_silence_duration_ms=500, speech_pad_ms=400),
+            condition_on_previous_text=True,
         )
         segments = list(raw_segments)
     
