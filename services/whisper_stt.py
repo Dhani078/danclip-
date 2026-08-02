@@ -174,9 +174,26 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
         )
         segments = list(raw_segments)
     except Exception as gpu_err:
-        print(f"[Whisper GPU Warning] {gpu_err}. Retrying GPU transcribe with VRAM optimization...")
+        print(f"[Whisper GPU Warning] {gpu_err}. Hard resetting CUDA context & retrying...")
+        # 1. Completely destroy the broken CUDA model
+        global _whisper_model
+        if _whisper_model is not None:
+            del _whisper_model
+            _whisper_model = None
+            
+        # 2. Aggressive VRAM purge
+        import gc
         gc.collect()
-        raw_segments, info = model.transcribe(
+        try:
+            import torch
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        except Exception:
+            pass
+            
+        # 3. Reload fresh model and retry
+        fresh_model = get_whisper_model()
+        raw_segments, info = fresh_model.transcribe(
             audio_path,
             language=lang_param,
             task=whisper_task,
@@ -184,7 +201,7 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
             beam_size=1,
             word_timestamps=True,
             vad_filter=True,
-            vad_parameters=dict(min_silence_duration_ms=300),
+            vad_parameters=dict(min_silence_duration_ms=500),
             condition_on_previous_text=False,
         )
         segments = list(raw_segments)
