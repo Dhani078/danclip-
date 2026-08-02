@@ -63,14 +63,27 @@ def get_whisper_model():
     global _whisper_model
     if _whisper_model is None:
         model_name = os.environ.get("WHISPER_MODEL", "large-v3")
-        print(f"[Whisper] Loading model '{model_name}' on NVIDIA GPU CUDA (int8 mode)...")
-        _whisper_model = WhisperModel(
-            model_name,
-            device="cuda",
-            compute_type="int8",
-            device_index=0
-        )
-        print(f"[Whisper] SUCCESSFULLY LOADED '{model_name}' ON NVIDIA GPU CUDA!")
+        try:
+            print(f"[Whisper] Loading model '{model_name}' on NVIDIA GPU CUDA (int8 mode)...")
+            _whisper_model = WhisperModel(
+                model_name,
+                device="cuda",
+                compute_type="int8",
+                device_index=0
+            )
+            print(f"[Whisper] SUCCESSFULLY LOADED '{model_name}' ON NVIDIA GPU CUDA!")
+        except Exception as e:
+            print(f"[Whisper Warning] GPU Loading Failed: {e}. Falling back to CPU mode...")
+            import gc, torch
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            _whisper_model = WhisperModel(
+                model_name,
+                device="cpu",
+                compute_type="int8"
+            )
+            print(f"[Whisper] SUCCESSFULLY LOADED '{model_name}' ON CPU!")
     return _whisper_model
 
 
@@ -152,9 +165,6 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
             torch.cuda.empty_cache()
     except Exception:
         pass
-        
-    model = get_whisper_model()
-    
     lang_param = language if (language and language.lower() != "auto") else None
     
     if lang_param == "id":
@@ -167,6 +177,8 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
     whisper_task = "translate" if target_language == "en" else "transcribe"
     
     try:
+        model = get_whisper_model()
+        
         # Beam size 5 provides better accuracy (less typos). VAD is disabled to prevent dropping speech in loud background music.
         raw_segments, info = model.transcribe(
             audio_path,
