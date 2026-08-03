@@ -1,8 +1,8 @@
 # 🚀 AutoClipWeb — Full Production Architecture & AI Engine Documentation
 
 > **Dokumentasi Komprehensif AutoClipWeb (AI Auto-Clipper Engine)**  
-> *Versi 2.0 Production-Ready (Opus Clip Pro Level Intelligence)*  
-> Dokumentasi ini mencakup seluruh arsitektur, algoritma AI YuNet, sistem rendering FFmpeg, engine subtitle Alex Hormozi, arsitektur database, dan panduan pengujian.
+> *Versi 2.1 Production-Ready (Opus Clip Pro Level Intelligence & SOTA Whisper STT)*  
+> Dokumentasi ini mencakup seluruh arsitektur, algoritma AI YuNet, sistem rendering FFmpeg, engine subtitle Alex Hormozi, anti-halusinasi Whisper, local video caching, garbage collector, arsitektur database, dan panduan pengujian.
 
 ---
 
@@ -14,8 +14,10 @@
 - **Backend Framework**: Python 3.13 + FastAPI (Async) + Uvicorn
 - **AI Scene Analysis**: Google Gemini 3.6 Flash API
 - **AI Face Detection & Tracking**: OpenCV YuNet ONNX (`face_detection_yunet_2023mar.onnx`)
-- **Speech-to-Text (STT)**: Faster-Whisper `large-v3` (CUDA INT8 Acceleration)
+- **Speech-to-Text (STT)**: Faster-Whisper `large-v3` (CUDA INT8 Acceleration + SOTA Greedy Decoding)
 - **Video Processing Engine**: FFmpeg (Complex Filter Graphs, ASS Subtitle Burning, Audio Ducking)
+- **Storage & Caching**: MD5 URL-based Local Video Cache (6 Hours TTL) + Background Garbage Collector
+- **Integration**: Telegram Bot Listener (1-Click TikTok Generator)
 - **Database & ORM**: SQLite (Async SQLAlchemy) + Pydantic v2
 - **Frontend UI**: Modern Dark Glassmorphism UI (HTML5, Vanilla CSS3, JavaScript ES6)
 
@@ -36,15 +38,23 @@ Untuk video podcast / wawancara 2+ orang:
    - **Bottom Half**: Kamera mengunci & memosisikan **Pembicara Kanan ($X = 75\%$)** di tengah frame bawah.
 2. **Camera Cut (1 Wajah Terlihat)**: Jika kamera podcast berpindah ke close-up 1 pembicara, sistem **otomatis tidak membelah layar**, melainkan beralih ke **Single Speaker Vertical Crop (1 Layar Penuh)** untuk mencegah pembicara kembar/duplikat.
 
-### C. Subtitle Engine (Alex Hormozi Word-by-Word Karaoke)
-1. **Format Subtitle**: Advanced SubStation Alpha (`.ass`).
-2. **Font & Typography**: `Segoe UI Black` + Outline 6px + Shadow 3D.
-3. **Dynamic Font Scaling**: Ukuran font UI ($11\text{pt} - 22\text{pt}$) otomatis di-scale ke canvas $1080 \times 1920$ ($44\text{pt} - 88\text{pt}$) agar teks tampil tebal, tegas, dan kontras tinggi di smartphone.
-4. **Viral Emoji Auto-Injection**: Otomatis menyuntikkan emoji viral berdasarkan kata kunci (contoh: `UANG` $\rightarrow$ 💰, `GILA` $\rightarrow$ 🤯, `KEREN` $\rightarrow$ 🔥, `NAIK` $\rightarrow$ 🚀, `OTAK` $\rightarrow$ 🧠, dll).
+### C. Whisper SOTA Anti-Hallucination & Subtitle Engine
+1. **Greedy Decoding (`beam_size=1`)**: Menghilangkan fenomena *infinite looping* ("tiba-tiba...") pada model `large-v3`.
+2. **Context-Aware No-Speech Filtering (`no_speech_prob > 0.2`)**: Menggunakan sensor `no_speech_prob` bawaan Whisper untuk membedakan antara *streamer yang benar-benar berbicara* dengan *halusinasi hening*.
+3. **Hallucination Blacklist**: Menyaring kalimat bawaan Whisper (contoh: *"Terima kasih telah menonton"*, *"Jangan lupa subscribe"*) jika terdeteksi pada hening/musik.
+4. **ASS Subtitle Engine**: Format SubStation Alpha dengan font `Segoe UI Black` + Outline 6px + Shadow 3D + *Alex Hormozi Word-by-Word Karaoke*.
+5. **Viral Emoji Auto-Injection**: Otomatis menyuntikkan emoji viral berdasarkan kata kunci (contoh: `UANG` $\rightarrow$ 💰, `GILA` $\rightarrow$ 🤯, `KEREN` $\rightarrow$ 🔥, `NAIK` $\rightarrow$ 🚀, `OTAK` $\rightarrow$ 🧠, dll).
 
 ---
 
-## 🗄️ 3. Skema Database & Data Flow
+## 📦 3. Local Video Caching & Storage Management
+
+1. **Persistent MD5 Cache**: Menggunakan hash MD5 dari URL YouTube untuk menyimpan video yang sudah di-download di `storage/temp/`. Jika URL sama diproses ulang dalam kurun waktu 6 jam, sistem **melewati proses re-download** dan langsung menggunakan file lokal.
+2. **Automatic Storage Garbage Collector**: Layanan latar belakang (*background service*) yang berjalan setiap 1 jam sekali untuk membersihkan file ekspor dan file temporer yang usianya sudah melebihi 6 jam, menjaga ruang disk tetap efisien.
+
+---
+
+## 🗄️ 4. Skema Database & Data Flow
 
 ### Tabel `jobs` (SQLite):
 | Field | Tipe Data | Deskripsi |
@@ -63,11 +73,11 @@ Untuk video podcast / wawancara 2+ orang:
 
 ---
 
-## 📁 4. Struktur File Proyek & Peta Fungsi
+## 📁 5. Struktur File Proyek & Peta Fungsi
 
 ```
 autoclipweb/
-├── main.py                   # FastAPI Entry Point & Job Queue Handler (Semaphore=1)
+├── main.py                   # FastAPI Entry Point, Local Video Caching, & Telegram Listener
 ├── config.py                 # Konfigurasi aplikasi & environment variables
 ├── database.py               # Inisialisasi SQLAlchemy Async Engine & Session
 ├── models.py                 # SQLAlchemy DB Model (Job)
@@ -75,33 +85,16 @@ autoclipweb/
 ├── services/
 │   ├── ffmpeg.py             # FFmpeg Render Engine, YuNet Face Tracking, ASS Subtitle Filter
 │   ├── gemini.py             # Gemini 3.6 Flash Analysis & Story Arc Clipper Prompt
-│   └── whisper_stt.py        # Faster-Whisper Transcription & ASS Generator
+│   ├── garbage_collector.py  # Storage Cleanup Service (Runs every 1 hr)
+│   └── whisper_stt.py        # Faster-Whisper SOTA Transcription & ASS Generator
 ├── templates/
 │   └── index.html            # Web Dashboard UI (Glassmorphism + Realtime Logs)
 ├── assets/
 │   └── face_detection_yunet_2023mar.onnx # Model YuNet Face Detection
 ├── storage/
-│   ├── temp/                 # Folder temporary download & audio
+│   ├── temp/                 # Folder temporary cache video & audio (6 Hours TTL)
 │   └── exports/              # Folder output MP4 hasil render
 └── SYSTEM_DOCUMENTATION.md   # Dokumentasi Sistem Utama
-```
-
----
-
-## 🧪 5. Panduan Pengujian & Verifikasi (Test Suite)
-
-Project ini dilengkapi dengan **2 script pengujian mandiri**:
-
-### 1. Test Rendering & YuNet Face Tracking (`test_render.py`)
-Memvalidasi deteksi wajah YuNet, framing Rule of Thirds, dan kompilasi filter complex FFmpeg:
-```bash
-python C:\Users\Anomali\.gemini\antigravity\brain\1e2ceb93-a1d2-4e2a-8632-c9941e9c2778\scratch\test_render.py
-```
-
-### 2. Test Integration API FastAPI (`test_api.py`)
-Memvalidasi endpoint API (`/`, `/favicon.ico`, `/api/v1/clips/history`, dan `POST /api/v1/clips`):
-```bash
-python C:\Users\Anomali\.gemini\antigravity\brain\1e2ceb93-a1d2-4e2a-8632-c9941e9c2778\scratch\test_api.py
 ```
 
 ---
@@ -110,12 +103,9 @@ python C:\Users\Anomali\.gemini\antigravity\brain\1e2ceb93-a1d2-4e2a-8632-c9941e
 
 1. Buka terminal di folder project `c:\xampp\htdocs\autoclipweb`:
    ```bash
-   python main.py
+   python -m uvicorn main:app --port 8000 --reload
    ```
 2. Buka browser dan akses:
    ```
-   http://127.0.0.1:8080
+   http://127.0.0.1:8000
    ```
-
----
-*Dokumentasi ini dibuat untuk memastikan seluruh konteks teknis arsitektur AutoClipWeb tersimpan dengan sempurna.*
