@@ -3,10 +3,10 @@ import asyncio
 from datetime import datetime, timedelta
 from config import settings
 
-def run_storage_cleanup(temp_max_age_hours: int = 24, export_max_age_days: int = 3) -> dict:
+def run_storage_cleanup(temp_max_age_hours: int = 6, export_max_age_days: int = 3) -> dict:
     """
     Scans storage directories and removes files older than specified thresholds.
-    - temp_dir: removes temporary video, audio, and subtitle files older than temp_max_age_hours.
+    - temp_dir: removes temporary video, audio, and subtitle files older than temp_max_age_hours (6 hours).
     - exports_dir: removes exported MP4 clips and JPG covers older than export_max_age_days.
     Returns details on deleted files and total bytes freed.
     """
@@ -49,7 +49,7 @@ def run_storage_cleanup(temp_max_age_hours: int = 24, export_max_age_days: int =
                     print(f"[GarbageCollector Warning] Failed to delete export file {fname}: {e}")
 
     mb_freed = total_bytes_freed / (1024 * 1024)
-    print(f"[GarbageCollector] Cleaned {deleted_files_count} old files. Freed {mb_freed:.2f} MB of disk space.")
+    print(f"[GarbageCollector] Cleaned {deleted_files_count} old files (>6h temp). Freed {mb_freed:.2f} MB of disk space.")
     return {
         "status": "success",
         "deleted_files_count": deleted_files_count,
@@ -57,15 +57,15 @@ def run_storage_cleanup(temp_max_age_hours: int = 24, export_max_age_days: int =
         "mb_freed": round(mb_freed, 2)
     }
 
-async def start_storage_garbage_collector(check_interval_hours: int = 6):
+async def start_storage_garbage_collector(check_interval_hours: int = 1):
     """
     Background loop that runs run_storage_cleanup periodically.
     Runs every `check_interval_hours` hours while server is active.
     """
-    print(f"[GarbageCollector] Automatic Storage Garbage Collector started (runs every {check_interval_hours} hours)...")
+    print(f"[GarbageCollector] Automatic Storage Garbage Collector started (runs every {check_interval_hours} hour(s), cleans temp > 6 hours)...")
     while True:
         try:
-            run_storage_cleanup(temp_max_age_hours=24, export_max_age_days=3)
+            run_storage_cleanup(temp_max_age_hours=6, export_max_age_days=3)
         except asyncio.CancelledError:
             break
         except Exception as e:
