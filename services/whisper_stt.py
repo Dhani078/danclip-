@@ -179,21 +179,21 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
     try:
         model = get_whisper_model()
         
-        # Beam size 5 provides better accuracy (less typos). Advanced VAD + Hallucination filters.
+        # Beam size 1 (Greedy search) strongly prevents repetitive hallucination loops in large-v3.
         raw_segments, info = model.transcribe(
             audio_path,
             language=lang_param,
             task=whisper_task,
             initial_prompt=initial_prompt,
-            beam_size=5,
+            beam_size=1,
             word_timestamps=True,
             vad_filter=True,
-            vad_parameters=dict(min_silence_duration_ms=1000, speech_pad_ms=600),
+            vad_parameters=dict(min_silence_duration_ms=3000, speech_pad_ms=600),
             condition_on_previous_text=False, # Critical for large-v3 to prevent infinite loops
             hallucination_silence_threshold=2.0, # Automatically drop hallucinated loops in silence
-            compression_ratio_threshold=2.4,
+            compression_ratio_threshold=2.0, # Stricter repetition filter
             log_prob_threshold=-1.0,
-            no_speech_threshold=0.6,
+            no_speech_threshold=0.8, # Be more strict about what counts as speech vs background noise
             temperature=[0.0, 0.2, 0.4], # Restrict high temperatures to prevent wild hallucinations
         )
         segments = list(raw_segments)
@@ -225,15 +225,15 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
             language=lang_param,
             task=whisper_task,
             initial_prompt=initial_prompt,
-            beam_size=5,
+            beam_size=1,
             word_timestamps=True,
             vad_filter=True,
-            vad_parameters=dict(min_silence_duration_ms=1000, speech_pad_ms=600),
+            vad_parameters=dict(min_silence_duration_ms=3000, speech_pad_ms=600),
             condition_on_previous_text=False, # Critical for large-v3 to prevent infinite loops
             hallucination_silence_threshold=2.0, # Automatically drop hallucinated loops in silence
-            compression_ratio_threshold=2.4,
+            compression_ratio_threshold=2.0, # Stricter repetition filter
             log_prob_threshold=-1.0,
-            no_speech_threshold=0.6,
+            no_speech_threshold=0.8, # Be more strict about what counts as speech vs background noise
             temperature=[0.0, 0.2, 0.4], # Restrict high temperatures to prevent wild hallucinations
         )
         segments = list(raw_segments)
