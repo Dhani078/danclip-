@@ -7,6 +7,8 @@ from sqlalchemy import select
 from pydantic import BaseModel
 import asyncio
 import os
+import hashlib
+import shutil
 import yt_dlp
 import traceback
 import json
@@ -34,20 +36,20 @@ from services.tiktok_publisher import publish_video_to_tiktok
 from contextlib import asynccontextmanager
 
 def cleanup_temp_storage():
-    """Cleans up orphan audio and subtitle temporary files older than 24 hours."""
+    """Cleans up orphan audio and subtitle temporary files older than 6 hours."""
     temp_dir = os.path.join(settings.STORAGE_DIR, "temp")
     if not os.path.exists(temp_dir):
         return
     now = datetime.now()
     for fname in os.listdir(temp_dir):
-        if fname.endswith((".wav", ".ass", ".mp3")):
-            fpath = os.path.join(temp_dir, fname)
-            try:
+        fpath = os.path.join(temp_dir, fname)
+        try:
+            if os.path.isfile(fpath):
                 file_time = datetime.fromtimestamp(os.path.getmtime(fpath))
-                if now - file_time > timedelta(hours=24):
+                if now - file_time > timedelta(hours=6):
                     os.remove(fpath)
-            except Exception:
-                pass
+        except Exception:
+            pass
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -56,7 +58,7 @@ async def lifespan(app: FastAPI):
     from services.notifications import start_telegram_bot_listener
     from services.garbage_collector import start_storage_garbage_collector
     listener_task = asyncio.create_task(start_telegram_bot_listener())
-    gc_task = asyncio.create_task(start_storage_garbage_collector(check_interval_hours=6))
+    gc_task = asyncio.create_task(start_storage_garbage_collector(check_interval_hours=1))
     yield
     listener_task.cancel()
     gc_task.cancel()
@@ -98,61 +100,89 @@ async def process_video_pipeline(job_id: str):
                 title = job.video_title or 'Local Video'
                 duration = job.duration_seconds or 0
             else:
-                cmd = [
-                    "python", "-m", "yt_dlp",
-                    "-f", "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best",
-                    "--merge-output-format", "mp4",
-                    "-o", raw_video_path,
-                    "--quiet",
-                    "--no-warnings",
-                    "--dump-json",
-                    "--no-simulate",
-                    "--retries", "10",
-                    "--fragment-retries", "10",
-                    "--socket-timeout", "30",
-                    "--concurrent-fragments", "5",
-                    "--extractor-args", "youtube:player_client=android,web",
-                    "--js-runtimes", "node"
-                ]
+                # URL-based 6-hour Local Caching Mechanism
+                url_clean = (job.youtube_url or "").strip()
+                url_hash = hashlib.md5(url_clean.encode('utf-8')).hexdigest()[:16] if url_clean else job_id
+                cached_video_path = os.path.join(temp_dir, f"cache_{url_hash}.mp4")
+                cached_meta_path = os.path.join(temp_dir, f"cache_{url_hash}.json")
                 
-                cookies_txt = os.path.abspath("cookies.txt")
-                if os.path.exists(cookies_txt):
-                    cmd.extend(["--cookies", cookies_txt])
+                use_cache = False
+                if os.path.exists(cached_video_path):
+                    mtime = datetime.fromtimestamp(os.path.getmtime(cached_video_path))
+                    if datetime.now() - mtime < timedelta(hours=6):
+                        use_cache = True
+                        
+                if use_cache:
+                    print(f"[yt-dlp Cache] Reusing local cached video for URL ({url_hash}): {cached_video_path} (Skipping yt-dlp download)")
+                    shutil.copyfile(cached_video_path, raw_video_path)
+                    title = job.video_title or 'Cached Video'
+                    duration = job.duration_seconds or 0
+                    if os.path.exists(cached_meta_path):
+                        try:
+                            with open(cached_meta_path, "r", encoding="utf-8") as f:
+                                meta_data = json.load(f)
+                                title = meta_data.get("title", title)
+                                duration = meta_data.get("duration", duration)
+                        except Exception:
+                            pass
+                else:
+                    cmd = [
+                        "python", "-m", "yt_dlp",
+                        "-f", "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best",
+                        "--merge-output-format", "mp4",
+                        "-o", cached_video_path,
+                        "--quiet",
+                        "--no-warnings",
+                        "--dump-json",
+                        "--no-simulate",
+                        "--retries", "10",
+                        "--concurrent-fragments", "5",
+                        "--js-runtimes", "node"
+                    ]
                     
-                cmd.append(job.youtube_url)
-                
-                def run_yt_dlp(command):
-                    return subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    cookies_txt = os.path.abspath("cookies.txt")
+                    if os.path.exists(cookies_txt):
+                        cmd.extend(["--cookies", cookies_txt])
+                        
+                    cmd.append(job.youtube_url)
                     
-                process = await asyncio.to_thread(run_yt_dlp, cmd)
-                stdout, stderr = process.stdout, process.stderr
-                
-                if process.returncode != 0:
-                    error_msg = stderr.decode('utf-8', errors='ignore').strip()
-                    # If bot verification triggered, try with browser cookies fallback
-                    if "bot" in error_msg.lower() or "sign in" in error_msg.lower():
-                        print("[yt-dlp] Bot detection triggered. Retrying with Chrome browser cookies...")
-                        cookie_cmd = list(cmd)
-                        cookie_cmd.extend(["--cookies-from-browser", "chrome"])
-                        process = await asyncio.to_thread(run_yt_dlp, cookie_cmd)
-                        stdout, stderr = process.stdout, process.stderr
-                        if process.returncode != 0:
-                            cookie_cmd2 = list(cmd)
-                            cookie_cmd2.extend(["--cookies-from-browser", "edge"])
-                            process = await asyncio.to_thread(run_yt_dlp, cookie_cmd2)
-                            stdout, stderr = process.stdout, process.stderr
+                    def run_yt_dlp(command):
+                        return subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                        
+                    process = await asyncio.to_thread(run_yt_dlp, cmd)
+                    stdout, stderr = process.stdout, process.stderr
                     
                     if process.returncode != 0:
                         error_msg = stderr.decode('utf-8', errors='ignore').strip()
-                        raise Exception(f"Video unavailable or invalid URL (yt-dlp failed): {error_msg}")
+                        # If bot verification triggered, try with browser cookies fallback
+                        if "bot" in error_msg.lower() or "sign in" in error_msg.lower():
+                            print("[yt-dlp] Bot detection triggered. Retrying with Chrome browser cookies...")
+                            cookie_cmd = list(cmd)
+                            cookie_cmd.extend(["--cookies-from-browser", "chrome"])
+                            process = await asyncio.to_thread(run_yt_dlp, cookie_cmd)
+                            stdout, stderr = process.stdout, process.stderr
+                            if process.returncode != 0:
+                                cookie_cmd2 = list(cmd)
+                                cookie_cmd2.extend(["--cookies-from-browser", "edge"])
+                                process = await asyncio.to_thread(run_yt_dlp, cookie_cmd2)
+                                stdout, stderr = process.stdout, process.stderr
+                        
+                        if process.returncode != 0:
+                            error_msg = stderr.decode('utf-8', errors='ignore').strip()
+                            raise Exception(f"Video unavailable or invalid URL (yt-dlp failed): {error_msg}")
+                        
+                    try:
+                        info = json.loads(stdout.decode('utf-8', errors='ignore'))
+                        title = info.get('title', 'Unknown Title')
+                        duration = info.get('duration', 0)
+                        with open(cached_meta_path, "w", encoding="utf-8") as f:
+                            json.dump({"title": title, "duration": duration}, f)
+                    except Exception:
+                        title = 'Downloaded Video'
+                        duration = 0
                     
-                try:
-                    info = json.loads(stdout.decode('utf-8', errors='ignore'))
-                    title = info.get('title', 'Unknown Title')
-                    duration = info.get('duration', 0)
-                except Exception:
-                    title = 'Local Video'
-                    duration = 0
+                    # Copy cached file to job raw_video_path
+                    shutil.copyfile(cached_video_path, raw_video_path)
                 
             job.video_title = title
             job.duration_seconds = duration
@@ -293,6 +323,13 @@ async def process_video_pipeline(job_id: str):
             if os.path.exists(raw_video_path):
                 os.remove(raw_video_path)
         finally:
+            # Clean up per-job raw_video_path (cached video in cache_*.mp4 remains for 6 hours)
+            raw_video_path = os.path.join(settings.STORAGE_DIR, "temp", f"{job_id}.mp4")
+            if os.path.exists(raw_video_path):
+                try:
+                    os.remove(raw_video_path)
+                except Exception:
+                    pass
             await session.close()
 
 
