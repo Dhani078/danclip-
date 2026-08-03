@@ -64,24 +64,20 @@ def get_whisper_model():
     if _whisper_model is None:
         model_name = os.environ.get("WHISPER_MODEL", "large-v3")
         try:
-            print(f"[Whisper] Loading model '{model_name}' on NVIDIA GPU CUDA (int8_float16 mode)...")
+            print(f"[Whisper] Loading model '{model_name}' on NVIDIA GPU CUDA (int8 mode)...")
             _whisper_model = WhisperModel(
                 model_name,
                 device="cuda",
-                compute_type="int8_float16",
+                compute_type="int8",
                 device_index=0
             )
             print(f"[Whisper] SUCCESSFULLY LOADED '{model_name}' ON NVIDIA GPU CUDA!")
         except Exception as e:
             print(f"[Whisper Warning] GPU Loading Failed: {e}. Falling back to CPU mode...")
-            import gc
+            import gc, torch
             gc.collect()
-            try:
-                import torch
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
-            except Exception:
-                pass
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
             _whisper_model = WhisperModel(
                 model_name,
                 device="cpu",
@@ -89,37 +85,6 @@ def get_whisper_model():
             )
             print(f"[Whisper] SUCCESSFULLY LOADED '{model_name}' ON CPU!")
     return _whisper_model
-
-
-# Known hallucination phrases that Whisper large-v3 tends to produce on noisy audio
-_HALLUCINATION_PATTERNS = [
-    "terima kasih", "thank you", "thanks for watching", "subscribe",
-    "like and subscribe", "please subscribe", "subtitles by",
-    "translated by", "amara.org", "subtitle", "caption",
-    "terima kasih telah menonton", "sampai jumpa",
-    "silahkan subscribe", "jangan lupa subscribe",
-    "musik", "teks oleh", "penerjemah",
-]
-
-def _is_hallucination(text: str) -> bool:
-    """Detect and filter out known Whisper hallucination phrases."""
-    t = text.strip().lower()
-    if not t:
-        return True
-    # 1. Check against known hallucination phrases
-    for pattern in _HALLUCINATION_PATTERNS:
-        if pattern in t:
-            return True
-    # 2. Detect excessive repetition (same word repeated 3+ times)
-    words = t.split()
-    if len(words) >= 3:
-        for i in range(len(words) - 2):
-            if words[i] == words[i+1] == words[i+2]:
-                return True
-    # 3. Detect very short nonsense (single character segments)
-    if len(t.replace(" ", "")) <= 1:
-        return True
-    return False
 
 
 def extract_clip_audio(input_video: str, start_time: str, end_time: str, output_audio: str) -> bool:
@@ -186,31 +151,6 @@ def apply_multicolor_highlight(clean_word: str, default_color: str = "&H00FFFFFF
     return f"{{\\c{default_color}}}{clean_word}"
 
 
-def _build_transcribe_params(audio_path, lang_param, whisper_task, initial_prompt):
-    """Build the shared transcription parameters dict (DRY helper)."""
-    return dict(
-        audio=audio_path,
-        language=lang_param,
-        task=whisper_task,
-        initial_prompt=initial_prompt,
-        beam_size=5,
-        word_timestamps=True,
-        temperature=0.0,                       # Deterministic output – no creative guessing
-        condition_on_previous_text=False,       # Prevents infinite hallucination loops
-        vad_filter=True,
-        vad_parameters=dict(
-            min_silence_duration_ms=500,        # Don't merge speech across 0.5s silences
-            speech_pad_ms=400,                  # Pad detected speech by 400ms on each side
-        ),
-        hallucination_silence_threshold=2.0,    # Skip segments with >2s silence (anti-hallucination)
-        compression_ratio_threshold=2.4,        # Reject garbage text with high compression ratio
-        log_prob_threshold=-1.0,                # Accept low-confidence words instead of dropping them
-        no_speech_threshold=0.6,                # Standard no-speech detection
-        repetition_penalty=1.2,                 # Penalize repeated tokens (anti-loop)
-        no_repeat_ngram_size=3,                 # Block any 3-gram from repeating (anti-loop)
-    )
-
-
 def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100, sub_color: str = "&H00FFFFFF", word_karaoke: bool = False, hook_title: str = "", subtitle_preset: str = "hormozi", subtitle_position: str = "bottom", target_language: str = "id") -> str:
     """
     Transcribe audio file to ASS format using Whisper.
@@ -230,18 +170,32 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
     if lang_param == "id":
         initial_prompt = "Abaikan suara musik dan efek suara. Ini adalah transkrip ucapan percakapan manusia berbahasa Indonesia yang sangat akurat, ejaan sempurna, tata bahasa benar, dan tanpa typo."
     elif lang_param == "en":
-        initial_prompt = "Ignore background music and sound effects. Accurate transcript of human spoken dialogue with perfect spelling and correct grammar."
+        initial_prompt = "Accurate transcript of spoken speech and audio dialogue with perfect spelling and correct grammar."
     else:
         # Universal prompt for all other languages globally
-        initial_prompt = "Ignore background music and sound effects. Accurate transcription of human speech only, with perfect spelling, correct grammar, and without any typos."
+        initial_prompt = "Accurate transcription of the spoken audio with perfect spelling, correct grammar, and without any typos."
     whisper_task = "translate" if target_language == "en" else "transcribe"
-    
-    params = _build_transcribe_params(audio_path, lang_param, whisper_task, initial_prompt)
     
     try:
         model = get_whisper_model()
-        raw_segments, info = model.transcribe(**params)
-        segments_raw = list(raw_segments)
+        
+        # Beam size 5 provides better accuracy (less typos). Advanced VAD + Hallucination filters.
+        raw_segments, info = model.transcribe(
+            audio_path,
+            language=lang_param,
+            task=whisper_task,
+            initial_prompt=initial_prompt,
+            beam_size=5,
+            word_timestamps=True,
+            vad_filter=True,
+            vad_parameters=dict(min_silence_duration_ms=1000, speech_pad_ms=600),
+            condition_on_previous_text=False, # Critical for large-v3 to prevent infinite loops
+            hallucination_silence_threshold=2.0, # Automatically drop hallucinated loops in silence
+            compression_ratio_threshold=2.4,
+            log_prob_threshold=-1.0,
+            no_speech_threshold=0.6,
+        )
+        segments = list(raw_segments)
     except Exception as gpu_err:
         print(f"[Whisper GPU Warning] {gpu_err}. Hard resetting CUDA context & retrying...")
         # 1. Completely destroy the broken CUDA model
@@ -265,18 +219,22 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
         from faster_whisper import WhisperModel
         model_name = os.environ.get("WHISPER_MODEL", "large-v3")
         cpu_model = WhisperModel(model_name, device="cpu", compute_type="int8")
-        raw_segments, info = cpu_model.transcribe(**params)
-        segments_raw = list(raw_segments)
-    
-    # ── Post-processing: filter out hallucinated segments ──
-    segments = []
-    for seg in segments_raw:
-        if not _is_hallucination(seg.text):
-            segments.append(seg)
-        else:
-            print(f"[Whisper Filter] Removed hallucination: '{seg.text.strip()}'")
-    
-    print(f"[Whisper] Transcription complete: {len(segments)} segments kept, {len(segments_raw) - len(segments)} hallucinations removed.")
+        raw_segments, info = cpu_model.transcribe(
+            audio_path,
+            language=lang_param,
+            task=whisper_task,
+            initial_prompt=initial_prompt,
+            beam_size=5,
+            word_timestamps=True,
+            vad_filter=True,
+            vad_parameters=dict(min_silence_duration_ms=1000, speech_pad_ms=600),
+            condition_on_previous_text=False, # Critical for large-v3 to prevent infinite loops
+            hallucination_silence_threshold=2.0, # Automatically drop hallucinated loops in silence
+            compression_ratio_threshold=2.4,
+            log_prob_threshold=-1.0,
+            no_speech_threshold=0.6,
+        )
+        segments = list(raw_segments)
     
     actual_font_size = int(sub_size) * 4 if int(sub_size) < 30 else int(sub_size)
     preset = (subtitle_preset or "hormozi").lower()
@@ -380,7 +338,8 @@ Format: Layer, Start, End, Style, Text
                         
                         emoji_prefix = VIRAL_EMOJIS.get(clean_word, "")
                         start_ass = format_ass_time(w.start)
-                        end_ass = format_ass_time(w.end)
+                        # Guarantee minimum 0.25s duration per word so FFmpeg never drops ultra-fast words
+                        end_ass = format_ass_time(max(w.end, w.start + 0.25))
                         
                         if use_multicolor:
                             styled_text = apply_multicolor_highlight(clean_word, primary_color.replace("&H00", ""))
@@ -396,7 +355,7 @@ Format: Layer, Start, End, Style, Text
                 else:
                     # Standard chunking
                     start_ass = format_ass_time(chunk[0].start)
-                    end_ass = format_ass_time(chunk[-1].end)
+                    end_ass = format_ass_time(max(chunk[-1].end, chunk[0].start + 0.30))
                     
                     line_words = []
                     for w in chunk:
@@ -417,7 +376,7 @@ Format: Layer, Start, End, Style, Text
                         ass_events.append(f"Dialogue: 0,{start_ass},{end_ass},Default,{extra_tags}{text}")
         else:
             start_ass = format_ass_time(segment.start)
-            end_ass = format_ass_time(segment.end)
+            end_ass = format_ass_time(max(segment.end, segment.start + 0.30))
             text = segment.text.strip().replace('.', '').replace(',', '').replace('?', '').replace('!', '').upper()
             if text:
                 ass_events.append(f"Dialogue: 0,{start_ass},{end_ass},Default,{extra_tags}{text}")
