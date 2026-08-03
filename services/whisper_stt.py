@@ -194,6 +194,7 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
             compression_ratio_threshold=2.4,
             log_prob_threshold=-1.0,
             no_speech_threshold=0.6,
+            temperature=[0.0, 0.2, 0.4], # Restrict high temperatures to prevent wild hallucinations
         )
         segments = list(raw_segments)
     except Exception as gpu_err:
@@ -233,6 +234,7 @@ def transcribe_to_ass(audio_path: str, language: str = None, sub_size: int = 100
             compression_ratio_threshold=2.4,
             log_prob_threshold=-1.0,
             no_speech_threshold=0.6,
+            temperature=[0.0, 0.2, 0.4], # Restrict high temperatures to prevent wild hallucinations
         )
         segments = list(raw_segments)
     
@@ -322,7 +324,23 @@ Format: Layer, Start, End, Style, Text
     use_multicolor = (preset in ["mrbeast", "multicolor"])
     chunk_size = 2 if (word_karaoke or preset in ["hormozi", "mrbeast", "tiktok_neon"]) else 5
     
+    # Strict filter for known Indonesian Whisper hallucinations during silence/outro
+    HALLUCINATION_BLACKLIST = [
+        "TERIMA KASIH TELAH MENONTON", "TERIMA KASIH SUDAH MENONTON",
+        "SAMPAI JUMPA", "JANGAN LUPA SUBSCRIBE", "TERIMA KASIH",
+        "SUBTITLE BY AMARA", "SUBSCRIBE", "SUBSCRIBE YA"
+    ]
+    
     for segment in segments:
+        seg_text_clean = segment.text.strip().replace('.', '').replace(',', '').replace('?', '').replace('!', '').replace('"', '').upper()
+        if not seg_text_clean:
+            continue
+            
+        # If the entire segment text matches a known hallucination precisely, drop it
+        if any(seg_text_clean == bad for bad in HALLUCINATION_BLACKLIST) or "TERIMA KASIH TELAH MENONTON" in seg_text_clean:
+            print(f"[Whisper Filter] Dropped hallucinated subtitle: '{seg_text_clean}'")
+            continue
+
         if segment.words:
             words = list(segment.words)
             
