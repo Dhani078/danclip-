@@ -336,9 +336,11 @@ Format: Layer, Start, End, Style, Text
         if not seg_text_clean:
             continue
             
-        # If the entire segment text matches a known hallucination precisely, drop it
-        if any(seg_text_clean == bad for bad in HALLUCINATION_BLACKLIST) or "TERIMA KASIH TELAH MENONTON" in seg_text_clean:
-            print(f"[Whisper Filter] Dropped hallucinated subtitle: '{seg_text_clean}'")
+        # Only drop suspicious phrases if they are highly likely to be non-speech (hallucinations in silence)
+        # Genuine speech will have no_speech_prob close to 0.0, hallucinations usually have > 0.3
+        is_suspicious = any(seg_text_clean == bad for bad in HALLUCINATION_BLACKLIST) or "TERIMA KASIH TELAH MENONTON" in seg_text_clean
+        if is_suspicious and getattr(segment, "no_speech_prob", 0) > 0.2:
+            print(f"[Whisper Filter] Dropped hallucinated subtitle: '{seg_text_clean}' (no_speech_prob={segment.no_speech_prob:.2f})")
             continue
 
         if segment.words:
