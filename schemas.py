@@ -4,14 +4,16 @@ from datetime import datetime
 from models import JobStatus
 
 class ClipRequest(BaseModel):
-    youtube_url: str  # Allows single URL or multi-line batch URLs
+    youtube_urls: List[str]  # Allows batch processing of multiple URLs
     aspect_ratio: str = "9:16"
     subtitle_color: str = "&H00FFFF"
     subtitle_size: int = 90
+    subtitle_opacity: int = 100
     subtitle_preset: str = "hormozi"
     subtitle_position: str = "bottom"
     target_language: str = "id"  # 'id', 'en', 'es', 'ja', 'ar'
     crop_style: str = "center_crop"
+    enable_subtitles: bool = False
     custom_prompt: Optional[str] = ""
     clip_count: int = 3
     auto_reframe: bool = False
@@ -23,6 +25,9 @@ class ClipRequest(BaseModel):
     enable_sfx: Optional[bool] = True
     webhook_url: Optional[str] = ""
     gemini_api_key: Optional[str] = ""
+    target_keyword: Optional[str] = ""
+    target_start_time: Optional[str] = ""
+    target_end_time: Optional[str] = ""
 
 class ClipResponse(BaseModel):
     job_id: str
@@ -43,10 +48,12 @@ class VideoJobDetail(BaseModel):
     aspect_ratio: Optional[str]
     subtitle_color: Optional[str]
     subtitle_size: Optional[int]
+    subtitle_opacity: Optional[int]
     subtitle_preset: Optional[str]
     subtitle_position: Optional[str]
     target_language: Optional[str]
     crop_style: Optional[str]
+    enable_subtitles: Optional[bool]
     custom_prompt: Optional[str]
     clip_count: Optional[int]
     auto_reframe: Optional[bool]
@@ -59,6 +66,9 @@ class VideoJobDetail(BaseModel):
     enable_sfx: Optional[bool]
     webhook_url: Optional[str]
     gemini_api_key: Optional[str]
+    target_keyword: Optional[str]
+    target_start_time: Optional[str]
+    target_end_time: Optional[str]
     created_at: datetime
     updated_at: Optional[datetime]
 
@@ -72,19 +82,15 @@ class ClipAnalysis(BaseModel):
     viral_reasoning: str = Field(default="", description="Detailed 2-3 sentence AI analysis breakdown explaining why this clip is viral (e.g., retention hooks, provocative question, high emotional value)")
     hook_title: str = Field(default="", description="Short 3-6 word viral header title to be displayed on top of the clip, e.g. RAHASIA MOBIL LISTRIK CHINA! 🔥")
     caption: str = Field(description="Engaging caption for TikTok/Reels")
-    hashtags: List[str] = Field(description="List of relevant hashtags")
+    hashtags: List[str] = Field(description="List of exactly 5 relevant hashtags (min 5, max 5)")
     tiktok_titles: List[str] = Field(default=[], description="3 unique viral title variations for TikTok")
     reels_titles: List[str] = Field(default=[], description="3 aesthetic title variations for Instagram Reels")
     shorts_titles: List[str] = Field(default=[], description="3 punchy title variations for YouTube Shorts")
-    tiktok_hashtags: List[str] = Field(default=[], description="Platform-tailored TikTok hashtags including trending tags")
-    reels_hashtags: List[str] = Field(default=[], description="Platform-tailored Instagram Reels hashtags")
-    shorts_hashtags: List[str] = Field(default=[], description="Platform-tailored YouTube Shorts hashtags e.g. #shorts")
+    tiktok_hashtags: List[str] = Field(default=[], description="List of exactly 5 platform-tailored TikTok hashtags (min 5, max 5)")
+    reels_hashtags: List[str] = Field(default=[], description="List of exactly 5 platform-tailored Instagram Reels hashtags (min 5, max 5)")
+    shorts_hashtags: List[str] = Field(default=[], description="List of exactly 5 platform-tailored YouTube Shorts hashtags (min 5, max 5)")
     tiktok_caption: str = Field(default="", description="Platform-tailored TikTok caption with viral hook, emojis, and trending hashtags e.g. #fyp #foryoupage")
     reels_caption: str = Field(default="", description="Platform-tailored Instagram Reels caption with aesthetic storytelling tone and hashtags e.g. #reels #explore")
     shorts_caption: str = Field(default="", description="Platform-tailored YouTube Shorts title caption with punchy tag format and hashtags e.g. #shorts #trending")
-    layout_type: str = Field(default="single", description="Must be 'split' if there are 2 people talking in the video, or 'single' if only 1 person.")
-    speaker_focus: str = Field(default="center", description="If layout_type is single, where is the speaker located? Choose 'left', 'center', or 'right'.")
-    has_broll: bool = Field(default=False, description="Set to true if this clip shows B-roll, memes, or screen recordings that require the full 16:9 screen to be visible.")
-
 class GeminiAnalysisSchema(BaseModel):
     clips: List[ClipAnalysis] = Field(description="List of extracted viral clips")

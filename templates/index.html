@@ -11,25 +11,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
         rel="stylesheet">
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'monospace'],
-                    },
-                    colors: {
-                        zinc: {
-                            900: '#18181b',
-                            950: '#09090b',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    
     <style>
         body {
             background-color: #09090b;
@@ -70,6 +52,7 @@
         <nav class="flex items-center gap-6 justify-center w-2/4">
             <button onclick="showPage('home')" id="navHome" class="text-sm font-semibold text-emerald-400 border-b-2 border-emerald-400 pb-1 transition-colors">✨ Studio (Editor)</button>
             <button onclick="showPage('myclips')" id="navMyClips" class="text-sm font-semibold text-zinc-400 hover:text-zinc-200 border-b-2 border-transparent pb-1 transition-colors">📂 My Clips (History)</button>
+            <button onclick="triggerCleanup()" id="navCleanup" class="text-sm font-semibold text-red-400 hover:text-red-300 border-b-2 border-transparent pb-1 transition-colors">🗑️ Bersihkan Storage</button>
         </nav>
 
         <div class="flex items-center justify-end gap-4 text-xs font-mono text-zinc-400 w-1/4">
@@ -122,7 +105,7 @@
                             <label for="url" class="text-xs text-zinc-400 font-medium">YouTube URL / Playlist Batch (1-5
                                 Link)</label>
                             <span
-                                class="text-[10px] text-amber-400 font-mono font-semibold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">⚡
+                                class="text-[11px] text-amber-400 font-mono font-semibold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">⚡
                                 Multi-URL Batch Supported</span>
                         </div>
                         <textarea id="url" name="url" rows="2"
@@ -137,241 +120,204 @@
                             <input type="file" id="videoFile" accept="video/mp4,video/x-m4v,video/*" class="hidden"
                                 onchange="handleFileSelected(this.files)">
                             <div class="flex flex-col items-center gap-2">
-                                <svg class="w-8 h-8 text-zinc-500" fill="none" stroke="currentColor"
+                                <svg class="w-8 h-8 text-zinc-400" fill="none" stroke="currentColor"
                                     viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                                         d="M7 16a4 4 0 01-.88-7.903A5 5 0 0115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                                 </svg>
                                 <div class="text-xs text-zinc-300 font-medium" id="dropFileName">Drag & Drop MP4 Video
                                     here or <span class="text-indigo-400 underline">Browse</span></div>
-                                <div class="text-[10px] text-zinc-500">Supports MP4, MOV, MKV up to 2GB</div>
+                                <div class="text-[11px] text-zinc-400">Supports MP4, MOV, MKV up to 2GB</div>
                             </div>
                         </div>
                     </div>
 
+                    <!-- Target Keyword / Affiliate (Optional) -->
+                    <div>
+                        <label for="target_keyword" class="text-xs text-zinc-400 font-medium mb-1 block">Target Produk / Keyword Affiliate (Opsional)</label>
+                        <input type="text" id="target_keyword" name="target_keyword"
+                            placeholder="Contoh: Parfum Braven, Baju Muslim, Skincare"
+                            class="w-full bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors">
+                    </div>
+                    
+                    <!-- Human-in-the-Loop Time Constraints (Optional) -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label for="target_start_time" class="text-xs text-zinc-400 font-medium mb-1 block">Waktu Mulai (Opsional)</label>
+                            <input type="text" id="target_start_time" name="target_start_time"
+                                placeholder="Contoh: 10:15"
+                                class="w-full bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors">
+                        </div>
+                        <div>
+                            <label for="target_end_time" class="text-xs text-zinc-400 font-medium mb-1 block">Waktu Selesai (Opsional)</label>
+                            <input type="text" id="target_end_time" name="target_end_time"
+                                placeholder="Contoh: 12:30"
+                                class="w-full bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors">
+                        </div>
+                    </div>
+
+                    <!-- AI Director Prompt -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label for="customPrompt" class="text-xs text-zinc-400 font-medium block text-emerald-400">🤖 SOW / Brief / AI Director Prompt</label>
+                            <button type="button" onclick="openPromptModal()" class="text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 transition">🔍 Expand</button>
+                        </div>
+                        <textarea id="customPrompt" name="customPrompt" rows="5"
+                            placeholder="Paste Brief/SOW lengkap di sini..."
+                            class="w-full bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-500 transition-colors font-mono"></textarea>
+                    </div>
+
                     <!-- Advanced Settings -->
-                    <details class="group border border-zinc-800 rounded-md bg-zinc-950/50">
-                        <summary
-                            class="cursor-pointer px-3 py-2 text-xs font-medium text-zinc-400 hover:text-zinc-200 list-none flex justify-between items-center transition-colors outline-none">
-                            <span>⚙️ Advanced Settings & Multi-Language Translate</span>
-                            <span class="transform group-open:rotate-180 transition-transform duration-200">▼</span>
-                        </summary>
-                        <div class="px-3 pb-3 pt-2 border-t border-zinc-800 flex flex-col gap-3">
-                            <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Aspect
-                                        Ratio</label>
-                                    <select id="aspectRatio"
-                                        class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
-                                        <option value="9:16">9:16 (TikTok/Reels)</option>
-                                        <option value="4:5">4:5 (Instagram)</option>
-                                        <option value="1:1">1:1 (Square)</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Layout
-                                        Style</label>
-                                    <select id="cropStyle"
-                                        class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
-                                        <option value="center_crop">Auto Center Crop</option>
-                                        <option value="blur_pad">Blur Background</option>
-                                         <option value="gaming_header">🎮 Gaming 1: Gameplay Atas + Streamer Facecam Bawah</option>
-                                         <option value="gaming_overlay">🎮 Gaming 2: Gameplay Utama + Floating Webcam Pojok</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label
-                                        class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Subtitle
-                                        Style Preset</label>
-                                    <select id="subtitlePreset"
-                                        class="w-full bg-zinc-900 border border-amber-500/30 rounded text-xs text-amber-300 font-semibold py-1.5 px-2 focus:outline-none focus:border-amber-500">
-                                        <option value="hormozi" selected>🔥 Alex Hormozi (Bold Yellow)</option>
-                                        <option value="mrbeast">⚡ MrBeast (Multi-Color Impact)</option>
-                                        <option value="multicolor">🎨 Multi-Color Auto Highlights</option>
-                                        <option value="tiktok_neon">✨ TikTok Viral Neon Glow</option>
-                                        <option value="ali_abdaal">📖 Ali Abdaal (Aesthetic Box)</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label
-                                        class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Subtitle
-                                        Color</label>
-                                    <select id="subtitleColor"
-                                        class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
-                                        <option value="&H00FFFF">Yellow (Opus Style)</option>
-                                        <option value="&HFFFFFF">White (Classic)</option>
-                                        <option value="&H00FF00">Green (Gaming)</option>
-                                        <option value="&H0000FF">Red (Aggressive)</option>
-                                        <option value="&HFF0000">Blue (Calm)</option>
-                                        <option value="&HFF00FF">Purple (Aesthetic)</option>
-                                        <option value="&H00A5FF">Orange (Bold)</option>
-                                        <option value="&HFFFF00">Cyan (Tech)</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label
-                                        class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Subtitle
-                                        Position (Vertical)</label>
-                                    <select id="subtitlePosition"
-                                        class="w-full bg-zinc-900 border border-emerald-500/30 rounded text-xs text-emerald-400 font-semibold py-1.5 px-2 focus:outline-none focus:border-emerald-500"
-                                        onchange="setSubtitlePos(this.value)">
-                                        <option value="bottom" selected>⬇️ Bottom (Classic - 15%)</option>
-                                        <option value="middle">↔️ Middle / Center (50%)</option>
-                                        <option value="top">⬆️ Top Header (80%)</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">🌐
-                                        Subtitle Language (Auto-Translate)</label>
-                                    <select id="targetLanguage"
-                                        class="w-full bg-zinc-900 border border-sky-500/30 rounded text-xs text-sky-400 font-semibold py-1.5 px-2 focus:outline-none focus:border-sky-500">
-                                        <option value="id" selected>🇮🇩 Bahasa Indonesia (Original)</option>
-                                        <option value="en">🇺🇸 English (Auto-Translate)</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label
-                                        class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Subtitle
-                                        Size</label>
-                                    <select id="subtitleSize"
-                                        class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
-                                        <option value="70">Small</option>
-                                        <option value="90" selected>Medium</option>
-                                        <option value="110">Large</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-1 gap-3 mt-1">
-                                <div>
-                                    <div class="flex items-center justify-between mb-1">
-                                        <label
-                                            class="text-[10px] text-zinc-500 uppercase tracking-wider block font-semibold text-emerald-400">🤖
-                                            AI Director Prompt (Multi-Line / Scrollable)</label>
-                                        <button type="button" onclick="openPromptModal()"
-                                            class="text-[10px] text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 transition">
-                                            <span>🔍 Pop-Up Fullscreen</span>
-                                        </button>
+                    
+                    <!-- Advanced Settings (Tabs) -->
+                    <div class="border border-zinc-800 rounded-md bg-zinc-950/50 mt-2">
+                        <div class="flex border-b border-zinc-800">
+                            <button type="button" onclick="switchSettingsTab('video')" id="tabSettingsVideo" class="flex-1 py-2 text-xs font-medium text-emerald-400 border-b-2 border-emerald-400">🎥 Video & AI</button>
+                            <button type="button" onclick="switchSettingsTab('subtitle')" id="tabSettingsSubtitle" class="flex-1 py-2 text-xs font-medium text-zinc-400 hover:text-zinc-200 border-b-2 border-transparent">💬 Subtitles</button>
+                            <button type="button" onclick="switchSettingsTab('branding')" id="tabSettingsBranding" class="flex-1 py-2 text-xs font-medium text-zinc-400 hover:text-zinc-200 border-b-2 border-transparent">✨ Branding</button>
+                        </div>
+                        
+                        <div class="p-4">
+                            <!-- Tab: Video -->
+                            <div id="settingsVideo" class="flex flex-col gap-3">
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="text-[11px] text-zinc-400 uppercase tracking-wider mb-1 block">Aspect Ratio</label>
+                                        <select id="aspectRatio" class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
+                                            <option value="9:16">9:16 (TikTok/Reels)</option>
+                                            <option value="4:5">4:5 (Instagram)</option>
+                                            <option value="1:1">1:1 (Square)</option>
+                                        </select>
                                     </div>
-                                    <textarea id="customPrompt" rows="3"
-                                        placeholder="Tulis arahan prompt bebas di sini (bisa multi-line & discroll)...&#10;Misal:&#10;- Cari momen paling lucu&#10;- Wajib gunakan hashtag #flashpeak #motionklip #ezklip"
-                                        class="w-full bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-zinc-200 p-2.5 focus:outline-none focus:border-emerald-500 placeholder-zinc-600 resize-y leading-relaxed font-mono overflow-y-auto"></textarea>
+                                    <div>
+                                        <label class="text-[11px] text-zinc-400 uppercase tracking-wider mb-1 block">Layout Style</label>
+                                        <select id="cropStyle" class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
+                                            <option value="center_crop">Auto Center Crop</option>
+                                            <option value="blur_pad">Blur Background</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="text-[11px] text-zinc-400 uppercase tracking-wider mb-1 block">Clips to Extract</label>
+                                        <select id="clipCount" class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
+                                            <option value="0">🤖 Auto (Max)</option>
+                                            <option value="1">1 Clip (Faster)</option>
+                                            <option value="3" selected>3 Clips (Balanced)</option>
+                                            <option value="5">5 Clips (Deep Search)</option>
+                                            <option value="7">7 Clips (Content Farm)</option>
+                                            <option value="10">10 Clips (Maximum Yield)</option>
+                                            <option value="15">15 Clips (Extreme)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="text-[11px] text-zinc-400 uppercase tracking-wider mb-1 block">Podcast Layout Mode</label>
+                                        <select id="layoutMode" class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
+                                            <option value="auto" selected>🤖 Auto-Detect</option>
+                                            <option value="single">👤 Single Speaker</option>
+                                            <option value="split">👥 Split (Podcast)</option>
+                                            <option value="gaming_header">🎮 Gaming Mode 1</option>
+                                            <option value="gaming_overlay">🎮 Gaming Mode 2</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <!-- Tab: Subtitle -->
+                            <div id="settingsSubtitle" class="flex flex-col gap-3 hidden">
+                                <div class="flex items-center justify-between bg-zinc-900 border border-zinc-800 p-2 rounded">
+                                    <label class="text-[11px] text-zinc-300 font-semibold uppercase tracking-wider">Burn Subtitles (Hardcode)</label>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="enableSubtitles" class="sr-only peer">
+                                        <div class="w-7 h-4 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500"></div>
+                                    </label>
+                                </div>
+                                <div>
+                                    <label class="text-[11px] text-zinc-400 uppercase tracking-wider mb-1 block">Style Preset</label>
+                                    <select id="subtitlePreset" class="w-full bg-zinc-900 border border-amber-500/30 rounded text-xs text-amber-300 font-semibold py-1.5 px-2 focus:outline-none focus:border-amber-500">
+                                        <option value="hormozi" selected>🔥 Alex Hormozi (Bold Yellow)</option>
+                                        <option value="mrbeast">⚡ MrBeast (Multi-Color)</option>
+                                        <option value="multicolor">🎨 Auto Highlights</option>
+                                        <option value="tiktok_neon">✨ TikTok Neon</option>
+                                        <option value="ali_abdaal">📖 Ali Abdaal (Box)</option>
+                                    </select>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="text-[11px] text-zinc-400 uppercase tracking-wider mb-1 block">Color</label>
+                                        <select id="subtitleColor" class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
+                                            <option value="&H00FFFF">Yellow</option>
+                                            <option value="&HFFFFFF">White</option>
+                                            <option value="&H00FF00">Green</option>
+                                            <option value="&H0000FF">Red</option>
+                                            <option value="&HFF0000">Blue</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="text-[11px] text-zinc-400 uppercase tracking-wider mb-1 block">Position</label>
+                                        <select id="subtitlePosition" onchange="setSubtitlePos(this.value)" class="w-full bg-zinc-900 border border-emerald-500/30 rounded text-xs text-emerald-400 py-1.5 px-2 focus:outline-none focus:border-emerald-500">
+                                            <option value="bottom" selected>⬇️ Bottom</option>
+                                            <option value="middle">↔️ Middle</option>
+                                            <option value="top">⬆️ Top</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-3 gap-3">
+                                    <div>
+                                        <label class="text-[11px] text-zinc-400 uppercase tracking-wider mb-1 block">Size</label>
+                                        <select id="subtitleSize" class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
+                                            <option value="70">Small</option>
+                                            <option value="90" selected>Medium</option>
+                                            <option value="110">Large</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="text-[11px] text-zinc-400 uppercase tracking-wider mb-1 block">Opacity</label>
+                                        <input type="number" id="subtitleOpacity" value="100" min="0" max="100" class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
+                                    </div>
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-2 gap-3 mt-1">
-                                <div>
-                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Clips
-                                        to Extract</label>
-                                    <select id="clipCount"
-                                        class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
-                                        <option value="1">1 Clip (Faster)</option>
-                                        <option value="3" selected>3 Clips (Balanced)</option>
-                                        <option value="5">5 Clips (Deep Search)</option>
-                                    </select>
+                            <!-- Tab: Branding -->
+                            <div id="settingsBranding" class="flex flex-col gap-3 hidden">
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="text-[11px] text-zinc-400 uppercase tracking-wider mb-1 block">🖼️ Custom Logo</label>
+                                        <input type="file" id="watermarkFile" accept="image/*" onchange="uploadWatermarkFile(this)" class="w-full bg-zinc-900 border border-zinc-800 rounded text-[11px] text-zinc-400 py-1 px-1.5 focus:outline-none">
+                                        <input type="hidden" id="watermarkPath" value="">
+                                    </div>
+                                    <div>
+                                        <label class="text-[11px] text-zinc-400 uppercase tracking-wider mb-1 block">📍 Logo Position</label>
+                                        <select id="watermarkPosition" class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
+                                            <option value="safe_center" selected>🟢 Safe Center</option>
+                                            <option value="top_right">↗️ Top Right</option>
+                                            <option value="bottom_left">↙️ Bottom Left</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Podcast
-                                        Layout Mode</label>
-                                    <select id="layoutMode"
-                                        class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600">
-                                        <option value="auto" selected>🤖 Auto-Detect (Podcast & Gaming)</option>
-                                        <option value="single">👤 Single Speaker (No Split)</option>
-                                        <option value="split">👥 Force Top/Bottom Split (Podcast)</option>
-                                         <option value="gaming_header">🎮 Gaming Mode 1 (Gameplay Atas + Facecam Bawah)</option>
-                                         <option value="gaming_overlay">🎮 Gaming Mode 2 (Floating Corner Webcam)</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-3 mt-1 pt-2 border-t border-zinc-800/60">
-                                <div>
-                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">🖼️
-                                        Custom Watermark Logo</label>
-                                    <input type="file" id="watermarkFile" accept="image/*"
-                                        onchange="uploadWatermarkFile(this)"
-                                        class="w-full bg-zinc-900 border border-zinc-800 rounded text-[11px] text-zinc-400 py-1 px-1.5 focus:outline-none">
-                                    <input type="hidden" id="watermarkPath" value="">
-                                </div>
-                                <div>
-                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">📍
-                                        Watermark Position</label>
-                                    <select id="watermarkPosition"
-                                        class="w-full bg-zinc-900 border border-emerald-500/40 rounded text-xs text-emerald-300 font-semibold py-1.5 px-2 focus:outline-none focus:border-emerald-500">
-                                        <option value="safe_center" selected>🟢 Safe Center (Area Hijau Safe Zone)
-                                        </option>
-                                        <option value="safe_top_center">🟢 Safe Top Center (Di Atas Wajah)</option>
-                                        <option value="safe_middle_right">🟢 Safe Middle Right (Aman dr Tombol Like)
-                                        </option>
-                                        <option value="safe_middle_left">🟢 Safe Middle Left</option>
-                                        <option value="top_right">↗️ Top Right (Pojok Kanan Atas)</option>
-                                        <option value="top_left">↖️ Top Left (Pojok Kiri Atas)</option>
-                                        <option value="bottom_right">↘️ Bottom Right (Pojok Kanan Bawah)</option>
-                                        <option value="bottom_left">↙️ Bottom Left (Pojok Kiri Bawah)</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-3 mt-1">
-                                <div>
-                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">🔤
-                                        Custom Font (.ttf/.otf)</label>
-                                    <input type="file" id="fontFile" accept=".ttf,.otf" onchange="uploadFontFile(this)"
-                                        class="w-full bg-zinc-900 border border-zinc-800 rounded text-[11px] text-zinc-400 py-1 px-1.5 focus:outline-none">
-                                    <input type="hidden" id="fontPath" value="">
-                                </div>
-                                <div>
-                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">🔔
-                                        Animated SFX (Audio Pop)</label>
-                                    <div class="pt-1.5">
-                                        <label class="flex items-center gap-2 cursor-pointer">
-                                            <input type="checkbox" id="enableSFX" checked
-                                                class="rounded bg-zinc-900 border-zinc-800 text-zinc-100 focus:ring-0">
-                                            <span class="text-xs text-amber-400 font-semibold">Play Pop sound on
-                                                Hook</span>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="text-[11px] text-zinc-400 uppercase tracking-wider mb-1 block">🔤 Custom Font (.ttf)</label>
+                                        <input type="file" id="fontFile" accept=".ttf,.otf" onchange="uploadFontFile(this)" class="w-full bg-zinc-900 border border-zinc-800 rounded text-[11px] text-zinc-400 py-1 px-1.5 focus:outline-none">
+                                        <input type="hidden" id="fontPath" value="">
+                                    </div>
+                                    <div>
+                                        <label class="text-[11px] text-zinc-400 uppercase tracking-wider mb-1 block">🔔 Audio SFX & BGM</label>
+                                        <label class="flex items-center gap-2 cursor-pointer mt-2">
+                                            <input type="checkbox" id="enableSFX" checked class="rounded bg-zinc-900 border-zinc-800 text-zinc-100 focus:ring-0">
+                                            <span class="text-xs text-amber-400 font-semibold">Play Pop on Hook</span>
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer mt-2">
+                                            <input type="checkbox" id="bgmDucking" class="rounded bg-zinc-900 border-zinc-800 text-zinc-100 focus:ring-0">
+                                            <span class="text-xs text-emerald-400 font-semibold">Enable Background Music</span>
                                         </label>
                                     </div>
                                 </div>
                             </div>
-
-                            <div class="flex flex-col gap-2 pt-2">
-                                <label class="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" id="autoReframe" checked
-                                        class="rounded bg-zinc-900 border-zinc-800 text-zinc-100 focus:ring-0 focus:ring-offset-0">
-                                    <span class="text-xs text-emerald-400 font-semibold">👤 Smart Face Tracking &
-                                        Speaker Reframe (Visual AI)</span>
-                                </label>
-                                <label class="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" id="wordKaraoke" checked
-                                        class="rounded bg-zinc-900 border-zinc-800 text-zinc-100 focus:ring-0 focus:ring-offset-0">
-                                    <span class="text-xs text-zinc-400 font-semibold text-emerald-400">Word Karaoke
-                                        (Alex Hormozi)</span>
-                                </label>
-                                <label class="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" id="bgmDucking" checked
-                                        class="rounded bg-zinc-900 border-zinc-800 text-zinc-100 focus:ring-0 focus:ring-offset-0">
-                                    <span class="text-xs text-zinc-400 font-semibold text-indigo-400">EBU R128 Audio
-                                        Normalization</span>
-                                </label>
-                            </div>
-                            <div class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
-                                <div>
-                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Custom
-                                        Gemini API Key (Optional)</label>
-                                    <input type="password" id="geminiApiKey" value=""
-                                        placeholder="Kosongkan untuk pakai System Default Key..."
-                                        class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600 placeholder-zinc-700 font-mono">
-                                </div>
-                                <div>
-                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Custom
-                                        Webhook / Telegram Bot (Optional)</label>
-                                    <input type="text" id="webhookUrl" value=""
-                                        placeholder="Kosongkan untuk kirim ke Telegram Bot Default Anda..."
-                                        class="w-full bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none focus:border-zinc-600 placeholder-zinc-700 font-mono">
-                                </div>
-                            </div>
                         </div>
-                    </details>
+                    </div>
+
 
                     <button type="button" id="submitBtn" onclick="handleFormSubmit(event)"
                         class="w-full bg-zinc-100 hover:bg-white text-zinc-950 font-medium py-2 px-4 rounded-md text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer">
@@ -388,7 +334,7 @@
                         <h2 class="text-xs font-mono uppercase tracking-wider text-zinc-400">Pipeline Terminal</h2>
                     </div>
                     <span id="statusBadge"
-                        class="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">IDLE</span>
+                        class="text-[11px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">IDLE</span>
                 </div>
 
                 <!-- Progress Bar -->
@@ -397,17 +343,24 @@
                 </div>
 
                 <!-- Terminal Console -->
-                <div id="terminal"
-                    class="flex-1 bg-zinc-950 border border-zinc-800 rounded-md p-3 font-mono text-xs text-zinc-400 overflow-y-auto terminal-scroll flex flex-col gap-1">
-                    <div class="text-zinc-600">// Waiting for job submission...</div>
-                </div>
+                <details class="group border border-zinc-800 rounded-md bg-zinc-950/50 mt-4" open>
+                    <summary class="cursor-pointer px-3 py-2 text-xs font-medium text-zinc-400 hover:text-zinc-200 list-none flex justify-between items-center transition-colors outline-none">
+                        <span>🖥️ Live Process Terminal</span>
+                        <span class="transform group-open:rotate-180 transition-transform duration-200">▼</span>
+                    </summary>
+                    <div class="border-t border-zinc-800 p-3 h-48 bg-zinc-950">
+                        <div id="terminal" class="h-full font-mono text-xs text-zinc-400 overflow-y-auto terminal-scroll flex flex-col gap-1">
+                            <div class="text-zinc-600">// Waiting for job submission...</div>
+                        </div>
+                    </div>
+                </details>
             </div>
         </div>
 
         <!-- Right Column: Extracted Clips Preview -->
         <div id="clipsContainer" class="lg:col-span-8 flex flex-col gap-6">
             <div
-                class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 flex items-center justify-center h-[500px] text-zinc-500 text-sm font-mono text-center">
+                class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 flex items-center justify-center h-[500px] text-zinc-400 text-sm font-mono text-center">
                 Submit a video to extract viral clips.
             </div>
         </div>
@@ -421,13 +374,23 @@
                     <button onclick="loadHistory()" class="text-xs font-medium bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-4 py-2 rounded-md transition shadow-md">🔄 Refresh History</button>
                 </div>
                 <div id="historyGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    <div class="text-zinc-500 text-sm italic py-10 col-span-full text-center">Loading history...</div>
+                    <div class="text-zinc-400 text-sm italic py-10 col-span-full text-center">Loading history...</div>
                 </div>
             </div>
         </div>
     </main>
 
     <script>
+        function esc(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
         let pollInterval = null;
         let currentJobId = null;
         let currentClipsData = [];
@@ -488,15 +451,28 @@
             }
         }
 
+        function switchSettingsTab(tabName) {
+            ['video', 'subtitle', 'branding'].forEach(t => {
+                document.getElementById('settings' + t.charAt(0).toUpperCase() + t.slice(1)).classList.add('hidden');
+                let btn = document.getElementById('tabSettings' + t.charAt(0).toUpperCase() + t.slice(1));
+                btn.classList.remove('text-emerald-400', 'border-emerald-400');
+                btn.classList.add('text-zinc-400', 'border-transparent');
+            });
+            document.getElementById('settings' + tabName.charAt(0).toUpperCase() + tabName.slice(1)).classList.remove('hidden');
+            let activeBtn = document.getElementById('tabSettings' + tabName.charAt(0).toUpperCase() + tabName.slice(1));
+            activeBtn.classList.remove('text-zinc-400', 'border-transparent');
+            activeBtn.classList.add('text-emerald-400', 'border-emerald-400');
+        }
+
         async function loadHistory() {
             const grid = document.getElementById('historyGrid');
-            grid.innerHTML = '<div class="text-zinc-500 text-sm italic py-10 col-span-full text-center animate-pulse">Loading history...</div>';
+            grid.innerHTML = '<div class="text-zinc-400 text-sm italic py-10 col-span-full text-center animate-pulse">Loading history...</div>';
             try {
                 const res = await fetch('/api/v1/clips/history');
                 if (!res.ok) throw new Error('Failed to fetch history');
                 const history = await res.json();
                 if (!history || history.length === 0) {
-                    grid.innerHTML = '<div class="text-zinc-500 text-sm italic py-10 col-span-full text-center">No history found. Create your first clip!</div>';
+                    grid.innerHTML = '<div class="text-zinc-400 text-sm italic py-10 col-span-full text-center">No history found. Create your first clip!</div>';
                     return;
                 }
                 
@@ -507,17 +483,21 @@
                     const dateStr = new Date(job.created_at || Date.now()).toLocaleString('id-ID', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
                     
                     html += `
-                    <div class="bg-zinc-950 border border-zinc-800 hover:border-emerald-500/50 rounded-lg p-4 flex flex-col gap-3 transition cursor-pointer group relative overflow-hidden" onclick="loadJobFromHistory('${job.id}')">
-                        <div class="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <div class="flex justify-between items-start relative z-10">
-                            <h3 class="text-sm font-semibold text-zinc-200 line-clamp-2 group-hover:text-emerald-400 transition" title="${job.video_title || job.youtube_url}">${job.video_title || job.youtube_url}</h3>
+                    <div class="bg-zinc-950 border border-zinc-800 hover:border-emerald-500/50 rounded-lg p-4 flex flex-col gap-3 transition cursor-pointer group relative overflow-hidden history-job-item" data-action="loadJob" data-job-id="${esc(job.id)}">
+                        <div class="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                        <div class="flex justify-between items-start relative z-10 pointer-events-none">
+                            <h3 class="text-sm font-semibold text-zinc-200 line-clamp-2 group-hover:text-emerald-400 transition" title="${esc(job.video_title || job.youtube_url)}">${esc(job.video_title || job.youtube_url)}</h3>
                         </div>
-                        <div class="text-[10px] text-zinc-500 font-mono relative z-10">${dateStr}</div>
-                        <div class="flex items-center justify-between mt-auto pt-2 border-t border-zinc-900 relative z-10">
-                            <span class="text-[11px] font-mono font-medium px-2 py-0.5 rounded bg-zinc-900 ${statusColor}">${job.status}</span>
-                            <span class="text-[11px] text-zinc-400 font-mono font-semibold bg-zinc-900 px-2 py-0.5 rounded">${clipsCount} Clips</span>
+                        <div class="text-[11px] text-zinc-400 font-mono relative z-10 pointer-events-none">${esc(dateStr)}</div>
+                        <div class="flex items-center justify-between mt-auto pt-2 border-t border-zinc-900 relative z-10 pointer-events-none">
+                            <span class="text-[11px] font-mono font-medium px-2 py-0.5 rounded bg-zinc-900 ${esc(statusColor)}">${esc(job.status)}</span>
+                            <span class="text-[11px] text-zinc-400 font-mono font-semibold bg-zinc-900 px-2 py-0.5 rounded">${esc(clipsCount)} Clips</span>
+                        </div>
+                        <div class="absolute top-2 right-2 z-20">
+                            <button data-action="deleteJob" data-job-id="${esc(job.id)}" class="text-[11px] bg-rose-500/20 text-rose-400 hover:text-rose-300 hover:bg-rose-500/40 px-2 py-1 rounded" title="Delete Job">🗑️ Delete</button>
                         </div>
                     </div>
+
                     `;
                 });
                 grid.innerHTML = html;
@@ -563,7 +543,7 @@
         function updateUI(job) {
             statusBadge.textContent = job.status;
 
-            statusBadge.className = 'text-[10px] font-mono px-2 py-0.5 rounded-full uppercase tracking-wider ' +
+            statusBadge.className = 'text-[11px] font-mono px-2 py-0.5 rounded-full uppercase tracking-wider ' +
                 (job.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-500' :
                     job.status === 'FAILED' ? 'bg-rose-500/10 text-rose-500' :
                         job.status === 'QUEUED' ? 'bg-zinc-800 text-zinc-400' :
@@ -608,10 +588,13 @@
                 logToTerminal(job.current_step_message, job.status === 'FAILED' ? 'error' : 'info');
             }
 
-            if (job.clips_json) {
+            // ONLY update clips DOM once when COMPLETED to avoid reloading video/DOM on every tick.
+            // But we might also want to show clips if user loads a COMPLETED job from history.
+            if (job.clips_json && (!window.lastRenderedJobId || window.lastRenderedJobId !== job.id || window.lastRenderedStatus !== job.status)) {
                 try {
                     const clips = JSON.parse(job.clips_json);
                     const outputs = job.output_video_path ? job.output_video_path.split(',') : [];
+                    const cacheBuster = job.updated_at ? new Date(job.updated_at).getTime() : Date.now();
 
                     let html = '';
 
@@ -621,7 +604,7 @@
                             <h3 class="text-sm font-medium text-zinc-100 mb-3">🎨 Edit Subtitle Appearance (No Re-download required)</h3>
                             <div class="flex flex-wrap gap-3 items-end">
                                 <div>
-                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Color</label>
+                                    <label class="text-[11px] text-zinc-400 uppercase tracking-wider mb-1 block">Color</label>
                                     <select id="re_subtitleColor" class="bg-zinc-950 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none">
                                         <option value="&H00FFFF" ${job.subtitle_color === '&H00FFFF' ? 'selected' : ''}>Yellow</option>
                                         <option value="&HFFFFFF" ${job.subtitle_color === '&HFFFFFF' ? 'selected' : ''}>White</option>
@@ -634,20 +617,24 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Size</label>
+                                    <label class="text-[11px] text-zinc-400 uppercase tracking-wider mb-1 block">Size</label>
                                     <select id="re_subtitleSize" class="bg-zinc-950 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none">
-                                        <option value="9">Small</option>
-                                        <option value="11" selected>Medium</option>
-                                        <option value="14">Large</option>
+                                        <option value="70" ${job.subtitle_size == 70 ? 'selected' : ''}>Small</option>
+                                        <option value="90" ${job.subtitle_size == 90 ? 'selected' : ''}>Medium</option>
+                                        <option value="110" ${job.subtitle_size == 110 ? 'selected' : ''}>Large</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1 block">Opacity (0-100)</label>
-                                    <input type="number" id="re_subtitleOpacity" value="100" min="0" max="100" class="bg-zinc-950 w-20 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none">
+                                    <label class="text-[11px] text-zinc-400 uppercase tracking-wider mb-1 block">Opacity (0-100)</label>
+                                    <input type="number" id="re_subtitleOpacity" value="${job.subtitle_opacity !== undefined ? job.subtitle_opacity : 100}" min="0" max="100" class="bg-zinc-950 w-20 border border-zinc-800 rounded text-xs text-zinc-300 py-1.5 px-2 focus:outline-none">
                                 </div>
                                 <div class="flex items-center gap-2 mb-2 mr-2">
                                     <input type="checkbox" id="re_wordKaraoke" checked class="rounded bg-zinc-950 border-zinc-800 text-emerald-500 focus:ring-emerald-500">
-                                    <span class="text-[10px] text-zinc-400 uppercase tracking-wider">Word-by-Word Karaoke</span>
+                                    <span class="text-[11px] text-zinc-400 uppercase tracking-wider">Word-by-Word Karaoke</span>
+                                </div>
+                                <div class="flex items-center gap-2 mb-2 mr-2">
+                                    <input type="checkbox" id="re_bgmDucking" ${job.bgm_ducking !== false ? 'checked' : ''} class="rounded bg-zinc-950 border-zinc-800 text-emerald-500 focus:ring-emerald-500">
+                                    <span class="text-[11px] text-zinc-400 uppercase tracking-wider">Enable BGM</span>
                                 </div>
                                 <button onclick="triggerRerender()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium py-1.5 px-4 rounded transition-colors">
                                     Apply & Re-Render
@@ -658,160 +645,93 @@
                     }
                     currentClipsData = clips;
                     clips.forEach((clip, index) => {
-                        const videoSrc = outputs[index] || '';
-                        // Always use the raw video for the web player so we don't double-render subtitles
+                        const videoSrc = esc(outputs[index] || '');
                         const previewVideoSrc = videoSrc.replace('_rerender', '');
 
-                        const tags = (clip.hashtags || []).map(t => `<span class="text-[10px] font-mono text-zinc-400 bg-zinc-800 px-2 py-1 rounded">#${t.trim()}</span>`).join('');
+                        const tags = (clip.hashtags || []).map(t => `<span class="text-[11px] font-mono text-zinc-400 bg-zinc-800 px-2 py-1 rounded">#${esc(t.trim())}</span>`).join('');
 
                         html += `
                         <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 flex flex-col md:flex-row gap-6 mb-6 shadow-xl">
-                            <!-- Left: Video Player Preview & Drag Position Editor -->
                             <div class="flex-shrink-0 w-full md:w-[260px] aspect-[9/16] bg-zinc-950 border border-zinc-800 rounded-lg overflow-hidden relative flex items-center justify-center group shadow-2xl">
                                 ${previewVideoSrc ? `
-                                <video id="video_${index}" src="${previewVideoSrc}?t=${Date.now()}" class="w-full h-full object-cover" controls playsinline></video>
+                                <video id="video_${index}" src="${previewVideoSrc}?v=${cacheBuster}" class="w-full h-full object-cover" controls playsinline></video>
                                 
-                                <!-- Quick Subtitle Position Preset Buttons -->
                                 <div class="absolute top-2 right-2 flex flex-col gap-1 z-20 opacity-80 hover:opacity-100 transition-opacity bg-zinc-950/80 p-1 rounded-md border border-zinc-800 backdrop-blur-sm">
-                                    <button type="button" onclick="setSubtitlePos('top')" class="text-[10px] text-amber-300 hover:text-white px-1.5 py-0.5 rounded hover:bg-zinc-800 font-mono font-bold" title="Posisi Atas (Header)">⬆️ Top</button>
-                                    <button type="button" onclick="setSubtitlePos('middle')" class="text-[10px] text-amber-300 hover:text-white px-1.5 py-0.5 rounded hover:bg-zinc-800 font-mono font-bold" title="Posisi Tengah">↔️ Mid</button>
-                                    <button type="button" onclick="setSubtitlePos('bottom')" class="text-[10px] text-amber-300 hover:text-white px-1.5 py-0.5 rounded hover:bg-zinc-800 font-mono font-bold" title="Posisi Bawah">⬇️ Bot</button>
+                                    <button type="button" data-action="setSubPos" data-pos="top" class="text-[11px] text-amber-300 hover:text-white px-1.5 py-0.5 rounded hover:bg-zinc-800 font-mono font-bold" title="Posisi Atas">⬆️ Top</button>
+                                    <button type="button" data-action="setSubPos" data-pos="middle" class="text-[11px] text-amber-300 hover:text-white px-1.5 py-0.5 rounded hover:bg-zinc-800 font-mono font-bold" title="Posisi Tengah">↔️ Mid</button>
+                                    <button type="button" data-action="setSubPos" data-pos="bottom" class="text-[11px] text-amber-300 hover:text-white px-1.5 py-0.5 rounded hover:bg-zinc-800 font-mono font-bold" title="Posisi Bawah">⬇️ Bot</button>
                                 </div>
 
-                                <!-- Interactive Draggable Subtitle Box Handle -->
                                 <div id="subtitleOverlay_${index}" 
-                                     onmousedown="startSubtitleDrag(event, ${index})" 
-                                     ontouchstart="startSubtitleDrag(event, ${index})"
+                                     data-action="startSubDrag" data-index="${index}"
                                      class="absolute bottom-[15%] left-0 w-full text-center px-2 cursor-ns-resize z-10 transition-all duration-75 select-none py-1.5 group/sub" 
                                      style="--sub-color: #FFFF00; text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 4px 4px rgba(0,0,0,0.5); line-height: 1.3; font-size: 1.25rem;"
                                      title="🖐️ Geser/Drag ke Atas/Bawah untuk mengatur posisi Subtitle!">
-                                     <div class="inline-block bg-zinc-950/80 border border-amber-400/60 text-amber-300 font-extrabold text-xs px-3 py-1.5 rounded-lg shadow-xl group-hover/sub:scale-105 transition-transform">
+                                     <div class="inline-block bg-zinc-950/80 border border-amber-400/60 text-amber-300 font-extrabold text-xs px-3 py-1.5 rounded-lg shadow-xl group-hover/sub:scale-105 transition-transform pointer-events-none">
                                          <span>💬 GESER SUBTITLE KE ATAS/BAWAH</span>
-                                         <span id="posLabel_${index}" class="text-[9px] font-mono text-emerald-400 block font-semibold mt-0.5">↕️ Drag Vertikal Aktif</span>
+                                         <span id="posLabel_${index}" class="text-[11px] font-mono text-emerald-400 block font-semibold mt-0.5">↕️ Drag Vertikal Aktif</span>
                                      </div>
                                 </div>
                                 ` : `<div class="text-zinc-600 text-xs font-mono text-center px-4"><span class="animate-pulse">Processing...</span></div>`}
                             </div>
                             
-                            <!-- Right: Detailed Clip Info & Control Actions -->
                             <div class="flex-1 flex flex-col gap-4 min-w-0">
-                                <!-- Top Bar: Title & Viral Score -->
                                 <div class="flex justify-between items-center bg-zinc-950/80 border border-zinc-800/80 p-3.5 rounded-lg">
                                     <div>
                                         <div class="flex items-center gap-2">
                                             <h3 class="text-base font-bold text-zinc-100">Clip ${index + 1}</h3>
-                                            <span class="font-mono text-xs text-zinc-400 bg-zinc-900 border border-zinc-800 px-2.5 py-0.5 rounded">⏱️ ${clip.start_time} - ${clip.end_time}</span>
+                                            <span class="font-mono text-xs text-zinc-400 bg-zinc-900 border border-zinc-800 px-2.5 py-0.5 rounded">⏱️ ${esc(clip.start_time)} - ${esc(clip.end_time)}</span>
                                         </div>
-                                        <p class="text-xs text-zinc-500 mt-0.5">Extracted by Gemini Dynamic Engine</p>
                                     </div>
                                     <div class="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-3.5 py-1.5 rounded-lg font-mono text-xs text-center flex items-center gap-2">
                                         <span class="text-[11px] uppercase tracking-wider text-zinc-400 font-sans">Viral Score</span>
-                                        <span class="text-xl font-extrabold text-emerald-400">${clip.viral_score}</span><span class="text-zinc-500 text-xs">/100</span>
+                                        <span class="text-xl font-extrabold text-emerald-400">${esc(clip.viral_score)}</span><span class="text-zinc-400 text-xs">/100</span>
                                     </div>
                                 </div>
 
-                                 ${clip.hook_title ? `<div class="bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-semibold px-3.5 py-2 rounded-lg flex items-center gap-2"><span>🔥</span> <span>Hook Title: <strong class="text-amber-200">${clip.hook_title}</strong></span></div>` : ''}
+                                ${clip.hook_title ? `<div class="bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-semibold px-3.5 py-2 rounded-lg flex items-center gap-2"><span>🔥</span> <span>Hook Title: <strong class="text-amber-200">${esc(clip.hook_title)}</strong></span></div>` : ''}
                                 
                                 ${clip.viral_reasoning ? `
                                 <div class="bg-indigo-950/40 border border-indigo-500/30 rounded-lg p-3 text-xs text-indigo-200 leading-relaxed shadow-sm">
                                     <div class="font-bold text-indigo-400 flex items-center gap-1.5 mb-1 text-[11px] uppercase tracking-wider">
                                         <span>💡 AI Viral Hook Rating Breakdown</span>
                                     </div>
-                                    <p>${clip.viral_reasoning}</p>
+                                    <p>${esc(clip.viral_reasoning)}</p>
                                 </div>
                                 ` : ''}
 
                                 <div>
-                                    <div class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1.5 font-mono">AI Context & Summary</div>
-                                    <div class="text-xs text-zinc-300 bg-zinc-950/60 border border-zinc-800/80 rounded-lg p-3 leading-relaxed">${clip.caption}</div>
+                                    <div class="text-[11px] text-zinc-400 uppercase tracking-wider mb-1.5 font-mono">AI Context & Summary</div>
+                                    <div class="text-xs text-zinc-300 bg-zinc-950/60 border border-zinc-800/80 rounded-lg p-3 leading-relaxed">${esc(clip.caption)}</div>
                                 </div>
                                 
-                                <!-- Platform Title & Hashtag Generator -->
-                                ${clip.tiktok_titles && clip.tiktok_titles.length ? `
-                                <div class="border border-zinc-800 rounded-lg p-3 bg-zinc-950/80">
-                                    <div class="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-2 font-mono flex items-center justify-between">
-                                        <span>🎯 AI 3-Title Generator & Hashtags</span>
-                                        <span class="text-emerald-400 text-[9px]">FYP Optimized</span>
-                                    </div>
-                                    
-                                    <div class="space-y-2">
-                                        <!-- TikTok Titles -->
-                                        <div class="bg-zinc-900/60 border border-zinc-800 p-2.5 rounded text-xs">
-                                            <div class="font-semibold text-rose-400 mb-1 flex justify-between items-center">
-                                                <span>🎵 TikTok Titles (3 Variasi)</span>
-                                                <button onclick="copyCaption('tiktok', ${index})" class="text-[10px] text-zinc-400 hover:text-white bg-zinc-800 px-2 py-0.5 rounded">Copy Full Caption</button>
-                                            </div>
-                                            <ul class="list-disc list-inside text-zinc-300 space-y-1 text-[11px]">
-                                                ${(clip.tiktok_titles || []).map(t => `<li class="hover:text-amber-300 cursor-pointer" onclick="navigator.clipboard.writeText('${t.replace(/'/g, "\\'")}'); alert('Judul disalin: ${t.replace(/'/g, "\\'")}');">${t}</li>`).join('')}
-                                            </ul>
-                                            ${clip.tiktok_hashtags && clip.tiktok_hashtags.length ? `<div class="mt-1.5 text-[10px] text-zinc-400 font-mono">${clip.tiktok_hashtags.join(' ')}</div>` : ''}
-                                        </div>
-
-                                        <!-- Reels Titles -->
-                                        <div class="bg-zinc-900/60 border border-zinc-800 p-2.5 rounded text-xs">
-                                            <div class="font-semibold text-purple-400 mb-1 flex justify-between items-center">
-                                                <span>📸 Instagram Reels Titles</span>
-                                                <button onclick="copyCaption('reels', ${index})" class="text-[10px] text-zinc-400 hover:text-white bg-zinc-800 px-2 py-0.5 rounded">Copy Full Caption</button>
-                                            </div>
-                                            <ul class="list-disc list-inside text-zinc-300 space-y-1 text-[11px]">
-                                                ${(clip.reels_titles || []).map(t => `<li class="hover:text-amber-300 cursor-pointer" onclick="navigator.clipboard.writeText('${t.replace(/'/g, "\\'")}'); alert('Judul disalin: ${t.replace(/'/g, "\\'")}');">${t}</li>`).join('')}
-                                            </ul>
-                                            ${clip.reels_hashtags && clip.reels_hashtags.length ? `<div class="mt-1.5 text-[10px] text-zinc-400 font-mono">${clip.reels_hashtags.join(' ')}</div>` : ''}
-                                        </div>
-
-                                        <!-- Shorts Titles -->
-                                        <div class="bg-zinc-900/60 border border-zinc-800 p-2.5 rounded text-xs">
-                                            <div class="font-semibold text-red-400 mb-1 flex justify-between items-center">
-                                                <span>🔴 YouTube Shorts Titles</span>
-                                                <button onclick="copyCaption('shorts', ${index})" class="text-[10px] text-zinc-400 hover:text-white bg-zinc-800 px-2 py-0.5 rounded">Copy Full Caption</button>
-                                            </div>
-                                            <ul class="list-disc list-inside text-zinc-300 space-y-1 text-[11px]">
-                                                ${(clip.shorts_titles || []).map(t => `<li class="hover:text-amber-300 cursor-pointer" onclick="navigator.clipboard.writeText('${t.replace(/'/g, "\\'")}'); alert('Judul disalin: ${t.replace(/'/g, "\\'")}');">${t}</li>`).join('')}
-                                            </ul>
-                                            ${clip.shorts_hashtags && clip.shorts_hashtags.length ? `<div class="mt-1.5 text-[10px] text-zinc-400 font-mono">${clip.shorts_hashtags.join(' ')}</div>` : ''}
-                                        </div>
-                                    </div>
-                                </div>
-                                ` : `
                                 <!-- Multi-Platform Caption Copy Bar -->
                                 <div>
-                                    <div class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1.5 font-mono">1-Click Platform Copy</div>
+                                    <div class="text-[11px] text-zinc-400 uppercase tracking-wider mb-1.5 font-mono">1-Click Platform Copy</div>
                                     <div class="grid grid-cols-3 gap-2.5">
-                                        <button onclick="copyCaption('tiktok', ${index})" class="bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 text-xs py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium shadow-sm">
-                                            🎵 TikTok
-                                        </button>
-                                        <button onclick="copyCaption('reels', ${index})" class="bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 text-xs py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium shadow-sm">
-                                            📸 Reels
-                                        </button>
-                                        <button onclick="copyCaption('shorts', ${index})" class="bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 text-xs py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium shadow-sm">
-                                            🔴 Shorts
-                                        </button>
+                                        <button data-action="copyCaption" data-platform="tiktok" data-index="${index}" class="bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 text-xs py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium shadow-sm">🎵 TikTok</button>
+                                        <button data-action="copyCaption" data-platform="reels" data-index="${index}" class="bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 text-xs py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium shadow-sm">📸 Reels</button>
+                                        <button data-action="copyCaption" data-platform="shorts" data-index="${index}" class="bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 text-xs py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 font-medium shadow-sm">🔴 Shorts</button>
                                     </div>
-                                </div>
-                                `}
-
-                                <div>
-                                    <div class="text-[10px] text-zinc-500 uppercase tracking-wider mb-1.5 font-mono">Hashtags</div>
-                                    <div class="flex flex-wrap gap-1.5">${tags}</div>
                                 </div>
 
                                 <!-- Visual Timeline & Trim Editor -->
                                 <div class="bg-zinc-950 border border-zinc-800 rounded-lg p-3 space-y-2">
-                                    <div class="text-[10px] text-zinc-400 font-bold uppercase tracking-wider font-mono flex items-center justify-between">
+                                    <div class="text-[11px] text-zinc-400 font-bold uppercase tracking-wider font-mono flex items-center justify-between">
                                         <span>✂️ Visual Trim & Timeline Editor</span>
-                                        <span id="trimRangeLabel_${index}" class="text-amber-400 font-mono text-[11px]">${clip.start_time} ➔ ${clip.end_time}</span>
+                                        <span id="trimRangeLabel_${index}" class="text-amber-400 font-mono text-[11px]">${esc(clip.start_time)} ➔ ${esc(clip.end_time)}</span>
                                     </div>
                                     <div class="grid grid-cols-2 gap-2 text-xs">
                                         <div>
-                                            <label class="text-[9px] text-zinc-500 block mb-0.5">Start Time (MM:SS)</label>
-                                            <input type="text" id="trimStart_${index}" value="${clip.start_time}" class="w-full bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-zinc-200 font-mono text-center">
+                                            <label class="text-[11px] text-zinc-400 block mb-0.5">Start Time (MM:SS)</label>
+                                            <input type="text" id="trimStart_${index}" value="${esc(clip.start_time)}" class="w-full bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-zinc-200 font-mono text-center">
                                         </div>
                                         <div>
-                                            <label class="text-[9px] text-zinc-500 block mb-0.5">End Time (MM:SS)</label>
-                                            <input type="text" id="trimEnd_${index}" value="${clip.end_time}" class="w-full bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-zinc-200 font-mono text-center">
+                                            <label class="text-[11px] text-zinc-400 block mb-0.5">End Time (MM:SS)</label>
+                                            <input type="text" id="trimEnd_${index}" value="${esc(clip.end_time)}" class="w-full bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-zinc-200 font-mono text-center">
                                         </div>
                                     </div>
-                                    <button onclick="triggerRetrim(${index})" class="w-full bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 font-bold text-xs py-1.5 rounded transition flex items-center justify-center gap-1">
+                                    <button data-action="retrim" data-index="${index}" class="w-full bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 font-bold text-xs py-1.5 rounded transition flex items-center justify-center gap-1">
                                         <span>✂️ Re-Trim Clip & Re-Render</span>
                                     </button>
                                 </div>
@@ -819,16 +739,16 @@
                                 <!-- AI 3-Thumbnail Cover Gallery -->
                                 ${clip.thumbnail_variants && clip.thumbnail_variants.length ? `
                                 <div class="bg-zinc-950 border border-zinc-800 rounded-lg p-3">
-                                    <div class="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-2 font-mono flex items-center justify-between">
+                                    <div class="text-[11px] text-zinc-400 font-bold uppercase tracking-wider mb-2 font-mono flex items-center justify-between">
                                         <span>🖼️ AI 3-Thumbnail Cover Gallery (9:16)</span>
-                                        <span class="text-[9px] text-amber-400 font-mono uppercase">High Retention</span>
+                                        <span class="text-[11px] text-amber-400 font-mono uppercase">High Retention</span>
                                     </div>
                                     <div class="grid grid-cols-3 gap-2">
                                         ${clip.thumbnail_variants.map((v, vIdx) => `
                                         <div class="relative group rounded border border-zinc-800 overflow-hidden bg-zinc-900">
-                                            <img src="${v}" class="w-full aspect-[9/16] object-cover">
+                                            <img src="${esc(v)}" class="w-full aspect-[9/16] object-cover">
                                             <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                                                <a href="${v}" download class="bg-amber-400 text-zinc-950 font-bold text-[10px] px-2 py-1 rounded shadow">Var ${vIdx + 1} 📥</a>
+                                                <a href="${esc(v)}" download class="bg-amber-400 text-zinc-950 font-bold text-[11px] px-2 py-1 rounded shadow">Var ${vIdx + 1} 📥</a>
                                             </div>
                                         </div>
                                         `).join('')}
@@ -839,22 +759,16 @@
                                 ${previewVideoSrc ? `
                                 <div class="mt-auto pt-3 border-t border-zinc-800/60 flex flex-col xl:flex-row gap-3 items-center">
                                     <div class="flex gap-2 w-full xl:w-auto flex-1">
-                                        <a href="${videoSrc}" download class="flex-1 bg-zinc-100 hover:bg-white text-zinc-950 font-bold text-xs py-2.5 px-3 rounded-lg text-center transition-colors flex items-center justify-center gap-1.5 shadow">
-                                            📥 Download MP4
-                                        </a>
-                                        <a href="${videoSrc.replace('.mp4', '_cover.jpg')}" download class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold text-xs py-2.5 px-3 rounded-lg text-center transition-colors flex items-center justify-center gap-1.5 border border-zinc-700">
-                                            🖼️ Cover (.jpg)
-                                        </a>
+                                        <a href="${videoSrc}" download class="flex-1 bg-zinc-100 hover:bg-white text-zinc-950 font-bold text-xs py-2.5 px-3 rounded-lg text-center transition-colors flex items-center justify-center gap-1.5 shadow">📥 Download MP4</a>
+                                        <button data-action="sendTelegram" data-src="${videoSrc}" data-caption="${esc(clip.tiktok_caption || clip.caption || clip.hook_title || '')}" class="flex-1 bg-[#0088cc] hover:bg-[#0077b3] text-white font-bold text-xs py-2.5 px-3 rounded-lg text-center transition-colors flex items-center justify-center gap-1.5 shadow">✈️ Kirim ke Telegram</button>
+                                        <a href="${videoSrc.replace('.mp4', '_cover.jpg')}" download class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold text-xs py-2.5 px-3 rounded-lg text-center transition-colors flex items-center justify-center gap-1.5 border border-zinc-700">🖼️ Cover (.jpg)</a>
                                     </div>
                                     <div class="flex items-center gap-2 w-full xl:w-auto">
                                         <select id="postMode_${index}" class="bg-zinc-950 border border-zinc-800 text-zinc-200 text-xs rounded-lg py-2.5 px-3 focus:outline-none focus:border-zinc-600">
-                                            <option value="inbox">📥 Mode Draft Inbox (Aman)</option>
-                                            <option value="direct">⚡ Mode Direct Post (Langsung Live)</option>
-                                            <option value="schedule">⏰ Mode Auto-Jadwal (+3 Jam)</option>
+                                            <option value="inbox">📥 Mode Draft Inbox</option>
+                                            <option value="direct">⚡ Mode Direct Post</option>
                                         </select>
-                                        <button onclick="publishTikTokWithMode('${videoSrc}', ${index})" class="bg-[#FE2C55] hover:bg-[#E6284C] text-white font-bold text-xs py-2.5 px-4 rounded-lg transition-colors whitespace-nowrap flex items-center gap-1.5 shadow-lg shadow-rose-900/20">
-                                            🚀 Post to TikTok
-                                        </button>
+                                        <button data-action="publishTikTok" data-src="${videoSrc}" data-index="${index}" class="bg-[#FE2C55] hover:bg-[#E6284C] text-white font-bold text-xs py-2.5 px-4 rounded-lg transition-colors whitespace-nowrap flex items-center gap-1.5 shadow-lg shadow-rose-900/20">🚀 Post to TikTok</button>
                                     </div>
                                 </div>
                                 ` : ''}
@@ -865,30 +779,26 @@
 
                     document.getElementById('clipsContainer').innerHTML = html;
 
-                    // Attach subtitle rendering logically without string escaping issues
-                    setTimeout(() => {
-                        clips.forEach((clip, index) => {
-                            const video = document.getElementById(`video_${index}`);
-                            if (video && clip.srt_subtitles) {
-                                initSubtitlesDirectly(video, clip.srt_subtitles, index);
-                            }
-                        });
-                    }, 100);
-
-                    // Attach event listeners for real-time style preview
+                    // Ensure listeners are only attached once per render
                     if (job.status === 'COMPLETED') {
                         ['re_subtitleColor', 're_subtitleSize', 're_subtitleOpacity', 're_wordKaraoke'].forEach(id => {
-                            document.getElementById(id).addEventListener('input', updateLivePreviewStyles);
+                            const el = document.getElementById(id);
+                            if(el) {
+                                el.removeEventListener('input', updateLivePreviewStyles); // remove old if exists
+                                el.addEventListener('input', updateLivePreviewStyles);
+                            }
                         });
                         updateLivePreviewStyles();
                     }
+                    
+                    window.lastRenderedJobId = job.id;
+                    window.lastRenderedStatus = job.status;
                 } catch (e) {
                     console.error("Failed to parse clips JSON", e);
                 }
             }
         }
-
-        async function publishTikTokWithMode(videoPath, index) {
+async function publishTikTokWithMode(videoPath, index) {
             const modeSelect = document.getElementById(`postMode_${index}`);
             const mode = modeSelect ? modeSelect.value : 'inbox';
 
@@ -899,7 +809,7 @@
             if (mode === 'direct') modeLabel = '⚡ Direct Post (Live)';
             if (mode === 'schedule') modeLabel = '⏰ Auto-Schedule (+3 Jam)';
 
-            alert(`🚀 Mengirim video & caption ke TikTok [${modeLabel}]...`);
+            showToast(`🚀 Mengirim video & caption ke TikTok [${modeLabel}]...`);
 
             try {
                 const res = await fetch('/api/v1/tiktok/publish', {
@@ -915,18 +825,18 @@
                 const data = await res.json();
                 if (res.ok) {
                     if (mode === 'schedule') {
-                        alert(`🎉 SKEDULER AKTIF! Klip #${index + 1} dijadwalkan terbit dalam 3 jam lagi! Video + Caption diproses ke TikTok.`);
+                        showToast(`🎉 SKEDULER AKTIF! Klip #${index + 1} dijadwalkan terbit dalam 3 jam lagi! Video + Caption diproses ke TikTok.`);
                     } else if (mode === 'direct') {
-                        alert(`🎉 SUKSES POSTING LANGSUNG! Video + Caption dikirim ke TikTok untuk terbit di Feed!`);
+                        showToast(`🎉 SUKSES POSTING LANGSUNG! Video + Caption dikirim ke TikTok untuk terbit di Feed!`);
                     } else {
-                        alert(`🎉 SUKSES! Video & Caption otomatis dikirim ke Draft TikTok Anda!\n\n💡 Tip: Anda juga bisa menekan tombol "🎵 TikTok" di bagian 1-Click Copy jika ingin menyalin caption secara manual.`);
+                        showToast(`🎉 SUKSES! Video & Caption otomatis dikirim ke Draft TikTok Anda!\n\n💡 Tip: Anda juga bisa menekan tombol "🎵 TikTok" di bagian 1-Click Copy jika ingin menyalin caption secara manual.`);
                     }
                 } else {
                     const errMsg = (data.detail && data.detail.trim()) ? data.detail : (data.message || JSON.stringify(data));
-                    alert('❌ TikTok Post Failed:\n' + errMsg);
+                    showToast('❌ TikTok Post Failed: ' + errMsg);
                 }
             } catch (e) {
-                alert('❌ Error sending video to TikTok: ' + e.message);
+                showToast('❌ Error: ' + e.message);
             }
         }
 
@@ -970,12 +880,9 @@
                 if (!video || !overlay) return;
 
                 const rect = video.parentElement.getBoundingClientRect();
-                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                let offsetY = clientY - rect.top;
-
-                // Clamp inside video height bounds (10% to 85%)
-                let pct = Math.max(10, Math.min(85, (offsetY / rect.height) * 100));
-                let bottomPct = 100 - pct;
+                const y = e.touches ? e.touches[0].clientY : e.clientY;
+                let bottomPct = ((rect.bottom - y) / rect.height) * 100;
+                bottomPct = Math.max(5, Math.min(95, bottomPct));
 
                 overlay.style.bottom = `${bottomPct}%`;
                 overlay.style.top = 'auto';
@@ -1030,58 +937,6 @@
                 }
             }
 
-            // Subtitle rendering logic
-            const parsedSRTCache = {};
-            function parseSRTTime(timeStr) {
-                const [hms, ms] = timeStr.split(',');
-                const [h, m, s] = hms.split(':').map(Number);
-                return (h * 3600 + m * 60 + s) + (Number(ms) / 1000);
-            }
-
-            function initSubtitlesDirectly(video, srtData, index) {
-                if (parsedSRTCache[index]) return; // Already initialized
-
-                // Normalize line endings
-                srtData = srtData.replace(/\r\n/g, '\n');
-                const lines = srtData.split('\n');
-                const subs = [];
-
-                for (let line of lines) {
-                    if (line.startsWith('Dialogue: ')) {
-                        const parts = line.substring(10).split(',');
-                        if (parts.length >= 5) {
-                            const startStr = parts[1];
-                            const endStr = parts[2];
-                            const textWithTags = parts.slice(4).join(',');
-                            // Strip ASS tags like {\c&H00FFFF&} for the plain text preview
-                            const text = textWithTags.replace(/\{.*?\}/g, '').trim();
-
-                            const parseTime = (t) => {
-                                const [hms, cs] = t.split('.');
-                                const [h, m, s] = hms.split(':').map(Number);
-                                return (h * 3600 + m * 60 + s) + (Number(cs || 0) / 100);
-                            };
-
-                            try {
-                                subs.push({
-                                    start: parseTime(startStr),
-                                    end: parseTime(endStr),
-                                    text: text
-                                });
-                            } catch (e) { }
-                        }
-                    }
-                }
-                parsedSRTCache[index] = subs;
-
-                // HTML overlay timeupdate disabled because subtitles are burned into the video by FFmpeg
-                video.addEventListener('timeupdate', () => {
-                    const overlay = document.getElementById(`subtitleOverlay_${index}`);
-                    if (overlay) {
-                        overlay.innerHTML = '';
-                    }
-                });
-            }
 
             function updateLivePreviewStyles() {
                 const color = document.getElementById('re_subtitleColor').value;
@@ -1101,8 +956,8 @@
 
                 // Map sizes
                 let cssSize = "1.2rem";
-                if (size === 9) cssSize = "0.9rem";
-                if (size === 14) cssSize = "1.5rem";
+                if (size === 70) cssSize = "0.9rem";
+                if (size === 110) cssSize = "1.5rem";
 
                 document.querySelectorAll('[id^="subtitleOverlay_"]').forEach(el => {
                     el.style.setProperty('--sub-color', cssColor);
@@ -1262,6 +1117,7 @@
                 const size = parseInt(document.getElementById('re_subtitleSize').value);
                 const opacity = parseInt(document.getElementById('re_subtitleOpacity').value);
                 const karaoke = document.getElementById('re_wordKaraoke').checked;
+                const bgm = document.getElementById('re_bgmDucking') ? document.getElementById('re_bgmDucking').checked : false;
 
                 logToTerminal(`Triggering Re-Render with new settings...`);
 
@@ -1274,6 +1130,7 @@
                             subtitle_size: size,
                             subtitle_opacity: opacity,
                             word_karaoke: karaoke,
+                            bgm_ducking: bgm,
                             subtitle_position: safeVal('subtitlePosition', 'bottom'),
                             subtitle_preset: safeVal('subtitlePreset', 'hormozi'),
                             target_language: safeVal('targetLanguage', 'id')
@@ -1334,7 +1191,7 @@
                 const clipsContainer = document.getElementById('clipsContainer');
                 if (clipsContainer) {
                     clipsContainer.innerHTML = `
-                <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 flex items-center justify-center h-[500px] text-zinc-500 text-sm font-mono text-center">
+                <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 flex items-center justify-center h-[500px] text-zinc-400 text-sm font-mono text-center">
                     <span class="animate-pulse">Analyzing video...</span>
                 </div>
                 `;
@@ -1355,8 +1212,10 @@
                         formData.append('crop_style', safeVal('cropStyle', 'center_crop'));
                         formData.append('subtitle_color', safeVal('subtitleColor', '&H00FFFF'));
                         formData.append('subtitle_size', safeInt('subtitleSize', 90));
+                        formData.append('subtitle_opacity', safeInt('subtitleOpacity', 100));
                         formData.append('subtitle_preset', safeVal('subtitlePreset', 'hormozi'));
                         formData.append('subtitle_position', safeVal('subtitlePosition', 'bottom'));
+                        formData.append('enable_subtitles', safeCheck('enableSubtitles', false));
                         formData.append('target_language', safeVal('targetLanguage', 'id'));
                         formData.append('watermark_position', safeVal('watermarkPosition', 'bottom_right'));
                         formData.append('watermark_path', document.getElementById('watermarkPath').value || '');
@@ -1365,10 +1224,13 @@
                         formData.append('clip_count', safeInt('clipCount', 3));
                         formData.append('auto_reframe', safeCheck('autoReframe', true));
                         formData.append('word_karaoke', safeCheck('wordKaraoke', true));
-                        formData.append('bgm_ducking', safeCheck('bgmDucking', true));
+                        formData.append('bgm_ducking', safeCheck('bgmDucking', false));
                         formData.append('layout_mode', safeVal('layoutMode', 'single'));
                         formData.append('webhook_url', safeVal('webhookUrl', ''));
                         formData.append('gemini_api_key', safeVal('geminiApiKey', ''));
+                        formData.append('target_keyword', safeVal('target_keyword', ''));
+                        formData.append('target_start_time', safeVal('target_start_time', ''));
+                        formData.append('target_end_time', safeVal('target_end_time', ''));
 
                         res = await fetch('/api/v1/upload', {
                             method: 'POST',
@@ -1381,13 +1243,15 @@
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                                youtube_url: url,
+                                youtube_urls: url.split(/[\r\n,\s]+/).map(u => u.trim()).filter(Boolean),
                                 aspect_ratio: safeVal('aspectRatio', '9:16'),
                                 crop_style: safeVal('cropStyle', 'center_crop'),
                                 subtitle_color: safeVal('subtitleColor', '&H00FFFF'),
                                 subtitle_size: safeInt('subtitleSize', 90),
+                                subtitle_opacity: safeInt('subtitleOpacity', 100),
                                 subtitle_preset: safeVal('subtitlePreset', 'hormozi'),
                                 subtitle_position: safeVal('subtitlePosition', 'bottom'),
+                                enable_subtitles: safeCheck('enableSubtitles', false),
                                 target_language: safeVal('targetLanguage', 'id'),
                                 watermark_position: safeVal('watermarkPosition', 'bottom_right'),
                                 watermark_path: document.getElementById('watermarkPath').value || '',
@@ -1396,10 +1260,13 @@
                                 clip_count: safeInt('clipCount', 3),
                                 auto_reframe: safeCheck('autoReframe', true),
                                 word_karaoke: safeCheck('wordKaraoke', true),
-                                bgm_ducking: safeCheck('bgmDucking', true),
+                                bgm_ducking: safeCheck('bgmDucking', false),
                                 layout_mode: safeVal('layoutMode', 'single'),
                                 webhook_url: safeVal('webhookUrl', ''),
-                                gemini_api_key: safeVal('geminiApiKey', '')
+                                gemini_api_key: safeVal('geminiApiKey', ''),
+                                target_keyword: safeVal('target_keyword', ''),
+                                target_start_time: safeVal('target_start_time', ''),
+                                target_end_time: safeVal('target_end_time', '')
                             })
                         });
                     }
@@ -1460,6 +1327,107 @@
                     textarea.value = presetText;
                 }
             }
+
+            // Global Event Delegation for dynamic content actions
+            document.addEventListener('click', (e) => {
+                const el = e.target.closest('[data-action]');
+                if (!el) return;
+                
+                const action = el.dataset.action;
+                if (action === 'loadJob') {
+                    loadJobFromHistory(el.dataset.jobId);
+                } else if (action === 'setSubPos') {
+                    setSubtitlePos(el.dataset.pos);
+                } else if (action === 'copyText') {
+                    const text = el.dataset.text;
+                    navigator.clipboard.writeText(text).then(() => {
+                        showToast('Judul disalin!');
+                    });
+                } else if (action === 'copyCaption') {
+                    copyCaption(el.dataset.platform, parseInt(el.dataset.index, 10));
+                } else if (action === 'retrim') {
+                    triggerRetrim(parseInt(el.dataset.index, 10));
+                
+                } else if (action === 'deleteJob') {
+                    if(confirm('Apakah Anda yakin ingin menghapus job ini berserta filenya?')) {
+                        fetch(`/api/v1/clips/${el.dataset.jobId}`, { method: 'DELETE' })
+                        .then(res => res.json())
+                        .then(() => loadHistory())
+                        .catch(e => showToast('Error delete: ' + e));
+                    }
+                } else if (action === 'publishTikTok') {
+                    publishTikTokWithMode(el.dataset.src, parseInt(el.dataset.index, 10));
+                } else if (action === 'sendTelegram') {
+                    sendMP4ToTelegram(el, el.dataset.src, el.dataset.caption);
+                }
+            });
+
+            async function sendMP4ToTelegram(btn, videoSrc, captionText) {
+                btn.disabled = true;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = `<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Mengirim...`;
+                
+                try {
+                    const res = await fetch('/api/v1/telegram/send_mp4', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            video_path: videoSrc,
+                            caption: captionText || ""
+                        })
+                    });
+                    
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.detail || 'Upload failed');
+                    
+                    showToast(`✅ MP4 Berhasil dikirim ke Telegram Anda!`);
+                } catch (err) {
+                    alert(`❌ Gagal Mengirim: ${err.message}`);
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
+            }
+
+            document.addEventListener('mousedown', (e) => {
+                const el = e.target.closest('[data-action]');
+                if (el && el.dataset.action === 'startSubDrag') {
+                    startSubtitleDrag(e, parseInt(el.dataset.index, 10));
+                }
+            });
+
+            document.addEventListener('touchstart', (e) => {
+                const el = e.target.closest('[data-action]');
+                if (el && el.dataset.action === 'startSubDrag') {
+                    startSubtitleDrag(e, parseInt(el.dataset.index, 10));
+                }
+            }, {passive: false});
+
+            async function triggerCleanup() {
+                if (!confirm("Apakah Anda yakin ingin membersihkan storage (temp & export)? File sementara dari pekerjaan lama akan dihapus.")) return;
+                
+                const btn = document.getElementById('navCleanup');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = "⏳ Membersihkan...";
+                btn.disabled = true;
+
+                try {
+                    const response = await fetch('/api/v1/storage/cleanup', { method: 'POST' });
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        alert(`🧹 Berhasil membersihkan ${result.deleted_files_count || 0} file. Storage lega ${result.mb_freed || 0} MB.`);
+                    } else {
+                        alert("❌ Gagal membersihkan storage: " + (result.detail || "Error server"));
+                    }
+                } catch (error) {
+                    alert("❌ Error jaringan saat membersihkan storage.");
+                } finally {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            }
+
     </script>
 
     <!-- AI Director Fullscreen/Popup Editor Modal -->
@@ -1483,7 +1451,7 @@
             <div class="p-4 space-y-3 overflow-y-auto flex-1">
                 <!-- Preset Quick Buttons -->
                 <div>
-                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider block mb-1.5 font-mono">⚡ Quick
+                    <label class="text-[11px] text-zinc-400 uppercase tracking-wider block mb-1.5 font-mono">⚡ Quick
                         Presets (Klik untuk sisipkan)</label>
                     <div class="flex flex-wrap gap-1.5 text-xs">
                         <button type="button"
@@ -1510,7 +1478,7 @@
                 </div>
 
                 <div>
-                    <label class="text-[10px] text-zinc-500 uppercase tracking-wider block mb-1 font-mono">📝 Multi-Line
+                    <label class="text-[11px] text-zinc-400 uppercase tracking-wider block mb-1 font-mono">📝 Multi-Line
                         Prompt Editor (Tulis Panjang Bebas)</label>
                     <textarea id="modalCustomPrompt" rows="8" placeholder="Tulis instruksi lengkap Anda di sini... Misal:
 - Cari momen pembicara membahas topik AI.

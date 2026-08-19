@@ -21,6 +21,33 @@ def calculate_schedule_times(num_clips: int, interval_hours: int = 3) -> list:
         })
     return schedule_times
 
+async def refresh_tiktok_access_token(client_key: str, client_secret: str, refresh_token: str) -> dict:
+    """
+    Refreshes an expired TikTok access token using the refresh_token via TikTok Open API v2.
+    """
+    if not refresh_token:
+        return {"status": "error", "message": "No refresh_token provided"}
+        
+    url = "https://open.tiktokapis.com/v2/oauth/token/"
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Cache-Control": "no-cache"
+    }
+    data = {
+        "client_key": client_key,
+        "client_secret": client_secret,
+        "grant_type": "refresh_token",
+        "refresh_token": refresh_token
+    }
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        res = await client.post(url, data=data, headers=headers)
+        res_data = res.json()
+        if "access_token" in res_data:
+            return {"status": "success", "data": res_data}
+        else:
+            return {"status": "error", "message": res_data.get("error_description") or res_data.get("message") or "Failed to refresh token", "raw": res_data}
+
+
 async def publish_video_to_tiktok(
     video_path: str,
     access_token: str,

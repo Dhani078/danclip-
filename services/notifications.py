@@ -112,8 +112,11 @@ async def send_telegram_notification(
             
             # Interactive Telegram buttons to trigger TikTok upload straight from Telegram chat
             inline_keyboard.append([
-                {"text": f"🚀 Post Klip #{i+1} ke TikTok (Draft)", "callback_data": f"tt_inbox:{job_id_val}:{clip_id}"},
-                {"text": f"⚡ Post Klip #{i+1} Direct Live", "callback_data": f"tt_direct:{job_id_val}:{clip_id}"}
+                {"text": f"🚀 Post TikTok (Draft)", "callback_data": f"tt_inbox:{job_id_val}:{clip_id}"},
+                {"text": f"⚡ Post Live", "callback_data": f"tt_direct:{job_id_val}:{clip_id}"}
+            ])
+            inline_keyboard.append([
+                {"text": f"📥 Kirim MP4 + Caption ke Sini", "callback_data": f"tg_send_mp4:{job_id_val}:{clip_id}"}
             ])
             
         payload = {
@@ -223,7 +226,7 @@ async def send_tiktok_publish_telegram_notification(
             print(f"[TikTok Webhook Notify Error] {e}")
             return {"status": "failed", "error": str(e)}
 
-async def start_telegram_bot_listener(bot_token: str = "8870492783:AAFLR7nuio7faUpiuwLhLeQK4VY1EV1q9_o"):
+async def start_telegram_bot_listener(bot_token: str = ""):
     """
     Long-polling loop for Telegram Bot callback queries.
     Allows user to click 'Post to TikTok' buttons directly inside Telegram chat!
@@ -250,16 +253,16 @@ async def start_telegram_bot_listener(bot_token: str = "8870492783:AAFLR7nuio7fa
                             cb_data = cb.get("data", "")
                             chat_id = cb["message"]["chat"]["id"]
                             
-                            if cb_data.startswith("tt_inbox:") or cb_data.startswith("tt_direct:"):
+                            if cb_data.startswith("tt_inbox:") or cb_data.startswith("tt_direct:") or cb_data.startswith("tg_send_mp4:"):
                                 parts = cb_data.split(":")
-                                mode = "inbox" if parts[0] == "tt_inbox" else "direct"
+                                mode = "tg_mp4" if parts[0] == "tg_send_mp4" else ("inbox" if parts[0] == "tt_inbox" else "direct")
                                 jid = parts[1]
                                 cid = parts[2]
                                 
                                 # Acknowledge button click in Telegram UI
                                 await client.post(
                                     f"https://api.telegram.org/bot{bot_token}/answerCallbackQuery",
-                                    json={"callback_query_id": cb_id, "text": f"⏳ Mengunggah Klip #{cid} ke TikTok ({mode.upper()})...", "show_alert": False}
+                                    json={"callback_query_id": cb_id, "text": f"⏳ Memproses Klip #{cid}...", "show_alert": False}
                                 )
                                 
                                 # Query database for clip details & publish
@@ -278,43 +281,57 @@ async def start_telegram_bot_listener(bot_token: str = "8870492783:AAFLR7nuio7fa
                                                 video_file = os.path.join(settings.STORAGE_DIR, "exports", f"{jid}_{cid}.mp4")
                                                 caption = target_clip.get("tiktok_caption") or target_clip.get("caption") or target_clip.get("hook_title", "")
                                                 
-                                                res = await publish_video_to_tiktok(
-                                                    video_file,
-                                                    access_token=settings.TIKTOK_ACCESS_TOKEN,
-                                                    title=caption,
-                                                    privacy_level="PUBLIC_TO_EVERYONE" if mode == "direct" else "SELF_ONLY",
-                                                    post_mode=mode
-                                                )
-                                                
-                                                # Auto fallback to inbox if Sandbox rejects Direct Post
-                                                if res.get("status") == "error" and mode == "direct":
+                                                if mode == "tg_mp4":
+                                                    if os.path.exists(video_file):
+                                                        with open(video_file, "rb") as f:
+                                                            await client.post(
+                                                                f"https://api.telegram.org/bot{bot_token}/sendVideo",
+                                                                data={"chat_id": chat_id, "caption": caption[:1024]},
+                                                                files={"video": f}
+                                                            )
+                                                    else:
+                                                        await client.post(
+                                                            f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                                                            json={"chat_id": chat_id, "text": "❌ *File MP4 tidak ditemukan!*", "parse_mode": "Markdown"}
+                                                        )
+                                                else:
                                                     res = await publish_video_to_tiktok(
                                                         video_file,
                                                         access_token=settings.TIKTOK_ACCESS_TOKEN,
                                                         title=caption,
-                                                        privacy_level="SELF_ONLY",
-                                                        post_mode="inbox"
+                                                        privacy_level="PUBLIC_TO_EVERYONE" if mode == "direct" else "SELF_ONLY",
+                                                        post_mode=mode
                                                     )
-                                                    mode = "inbox (Fallback Sandbox)"
-
-                                                if res.get("status") == "success":
-                                                    pub_id = res.get("publish_id", "N/A")
-                                                    mode_label = "📥 Draft Inbox" if "inbox" in mode else "⚡ Direct Live Feed"
-                                                    success_text = f"🎉 *BERHASIL MENGUNGGAH KE TIKTOK!*\n\n"
-                                                    success_text += f"📌 *Mode:* `{mode_label}`\n"
-                                                    success_text += f"🆔 *Publish ID:* `{pub_id}`\n\n"
-                                                    success_text += f"📝 *Caption & Hashtag:*\n```\n{caption[:500]}\n```"
                                                     
-                                                    await client.post(
-                                                        f"https://api.telegram.org/bot{bot_token}/sendMessage",
-                                                        json={"chat_id": chat_id, "text": success_text, "parse_mode": "Markdown"}
-                                                    )
-                                                else:
-                                                    err_msg = res.get("message", "Unknown error")
-                                                    await client.post(
-                                                        f"https://api.telegram.org/bot{bot_token}/sendMessage",
-                                                        json={"chat_id": chat_id, "text": f"❌ *Gagal Posting TikTok:* {err_msg}", "parse_mode": "Markdown"}
-                                                    )
+                                                    # Auto fallback to inbox if Sandbox rejects Direct Post
+                                                    if res.get("status") == "error" and mode == "direct":
+                                                        res = await publish_video_to_tiktok(
+                                                            video_file,
+                                                            access_token=settings.TIKTOK_ACCESS_TOKEN,
+                                                            title=caption,
+                                                            privacy_level="SELF_ONLY",
+                                                            post_mode="inbox"
+                                                        )
+                                                        mode = "inbox (Fallback Sandbox)"
+
+                                                    if res.get("status") == "success":
+                                                        pub_id = res.get("publish_id", "N/A")
+                                                        mode_label = "📥 Draft Inbox" if "inbox" in mode else "⚡ Direct Live Feed"
+                                                        success_text = f"🎉 *BERHASIL MENGUNGGAH KE TIKTOK!*\n\n"
+                                                        success_text += f"📌 *Mode:* `{mode_label}`\n"
+                                                        success_text += f"🆔 *Publish ID:* `{pub_id}`\n\n"
+                                                        success_text += f"📝 *Caption & Hashtag:*\n```\n{caption[:500]}\n```"
+                                                        
+                                                        await client.post(
+                                                            f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                                                            json={"chat_id": chat_id, "text": success_text, "parse_mode": "Markdown"}
+                                                        )
+                                                    else:
+                                                        err_msg = res.get("message", "Unknown error")
+                                                        await client.post(
+                                                            f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                                                            json={"chat_id": chat_id, "text": f"❌ *Gagal Posting TikTok:* {err_msg}", "parse_mode": "Markdown"}
+                                                        )
                                 except Exception as upload_err:
                                     await client.post(
                                         f"https://api.telegram.org/bot{bot_token}/sendMessage",

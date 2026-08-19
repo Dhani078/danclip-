@@ -2,6 +2,56 @@ import asyncio
 import os
 import re
 from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
+
+FFMPEG_CMD = os.path.join(os.path.dirname(os.path.dirname(__file__)), "bin", "ffmpeg.exe")
+if not os.path.exists(FFMPEG_CMD):
+    FFMPEG_CMD = "ffmpeg"
+
+_has_nvenc = None
+
+async def check_nvenc_availability():
+    global _has_nvenc
+    if _has_nvenc is not None:
+        return _has_nvenc
+        
+    try:
+        import subprocess
+        res = await asyncio.to_thread(
+            subprocess.run, [FFMPEG_CMD, "-hide_banner", "-encoders"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        output = res.stdout.decode(errors='ignore')
+        _has_nvenc = "h264_nvenc" in output
+    except Exception:
+        _has_nvenc = False
+    return _has_nvenc
+
+def get_best_encoder() -> list:
+    """Returns optimal video encoder flags (NVENC GPU if available, else libx264)."""
+    global _has_nvenc
+    if _has_nvenc is None:
+        try:
+            import subprocess
+            res = subprocess.run([FFMPEG_CMD, "-hide_banner", "-encoders"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            output = res.stdout.decode(errors='ignore')
+            _has_nvenc = "h264_nvenc" in output
+        except Exception:
+            _has_nvenc = False
+            
+    if _has_nvenc:
+        # Extremely safe fallback for GTX 1050/Pascal: no -cq, no -preset p5
+        return ["-c:v", "h264_nvenc", "-preset", "fast", "-b:v", "4M", "-maxrate", "5M", "-bufsize", "8M"]
+    else:
+        return ["-c:v", "libx264", "-preset", "veryfast", "-crf", "21"]
+def escape_ffmpeg_path(path: str) -> str:
+    """Escapes Windows paths for use inside FFmpeg filter single quotes (e.g. ass='', overlay='')"""
+    if not path:
+        return ""
+    # Inside single quotes in FFmpeg filter graph, backslashes must be forward slashes, colons must be escaped, and single quotes escaped.
+    return path.replace('\\', '/').replace("'", "\\'").replace(':', '\\:')
 
 def detect_faces_and_recommend_layout(video_path: str, start_time_sec: float, duration_sec: float = 30.0) -> dict:
     """
@@ -161,26 +211,30 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
 
     layout_mode = settings.get("layout_mode", "auto") # "auto", "single", "split", "gaming"
     
-    def parse_time(ts_str):
+    def parse_time(ts):
+        if isinstance(ts, (int, float)): return float(ts)
+        ts_str = str(ts).strip()
         parts = ts_str.split(':')
-        if len(parts) == 2: # MM:SS
-            return int(parts[0]) * 60 + int(parts[1])
-        elif len(parts) == 3: # HH:MM:SS
-            return int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
-        return 0
+        try:
+            if len(parts) == 2: return float(parts[0]) * 60.0 + float(parts[1])
+            elif len(parts) == 3: return float(parts[0]) * 3600.0 + float(parts[1]) * 60.0 + float(parts[2])
+            return float(ts_str)
+        except Exception:
+            return 0.0
 
     t1 = 0
+    duration_val = 60.0
     try:
         t1 = parse_time(start_time)
         t2 = parse_time(end_time)
-        duration = str(t2 - t1)
-        if (t2 - t1) <= 0:
-            duration = "60"
+        if (t2 - t1) > 0:
+            duration_val = float(t2 - t1)
+        duration = str(duration_val)
     except Exception:
         duration = "60"
 
     # Step: YuNet Face & Scene Detection (Multi-Keyframe Sampling)
-    face_info = await asyncio.to_thread(detect_faces_and_recommend_layout, input_path, float(t1), float(duration))
+    face_info = await asyncio.to_thread(detect_faces_and_recommend_layout, input_path, float(t1), duration_val)
     print(f"[FFmpeg Engine] Multi-Keyframe Scene & Face Analysis: {face_info}")
     
     # Determine split screen / gaming mode
@@ -210,6 +264,17 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
         effective_crop_style = gaming_variant
     else:
         effective_crop_style = "center_crop"
+        
+    # TRUE AUTO REFRAME TRACKING (EMA)
+    ema_video_path = None
+    use_ema_tracking = (effective_crop_style == "center_crop" and auto_reframe and not (should_split and face_info["num_faces"] >= 2))
+    
+    if use_ema_tracking:
+        from services.face_tracker import apply_ema_tracking_to_video
+        temp_ema = os.path.join(os.path.dirname(output_path), f"temp_ema_{os.path.basename(output_path)}")
+        success = await apply_ema_tracking_to_video(input_path, temp_ema, float(t1), duration_val, tw, th)
+        if success and os.path.exists(temp_ema):
+            ema_video_path = temp_ema
     
     if effective_crop_style in ["gaming", "gaming_header"]:
         # Layout Reference (Mednasah Style): Top Streamer Facecam (840px) + Bottom Gameplay (1080px) = 1920px Full Canvas (Zero Gap)
@@ -286,14 +351,18 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
                 f"[top][bottom]vstack[v]"
             )
         elif auto_reframe:
-            # Dynamic Single Face Tracking crop (X and Y Rule of Thirds)
-            ratio_x = float(face_info["face_center_x_ratio"]) if face_info.get("face_center_x_ratio") is not None else 0.5
-            ratio_y = float(face_info["face_center_y_ratio"]) if face_info.get("face_center_y_ratio") is not None else 0.35
-            
-            x_crop_expr = rf"max(0\, min(in_w-{tw}\, in_w*{ratio_x:.3f} - {tw}/2))"
-            y_crop_expr = rf"max(0\, min(in_h-{th}\, in_h*{ratio_y:.3f} - {th}*0.28))"
-            
-            filter_complex = f"[0:v]scale=-1:{th}:force_original_aspect_ratio=increase,crop={tw}:{th}:{x_crop_expr}:{y_crop_expr}[v]"
+            if ema_video_path:
+                # Pre-cropped by OpenCV EMA Tracker! Just pass it through.
+                filter_complex = f"[0:v]null[v]"
+            else:
+                # Dynamic Single Face Tracking crop (X and Y Rule of Thirds)
+                ratio_x = float(face_info["face_center_x_ratio"]) if face_info.get("face_center_x_ratio") is not None else 0.5
+                ratio_y = float(face_info["face_center_y_ratio"]) if face_info.get("face_center_y_ratio") is not None else 0.35
+                
+                x_crop_expr = rf"max(0\, min(in_w-{tw}\, in_w*{ratio_x:.3f} - {tw}/2))"
+                y_crop_expr = rf"max(0\, min(in_h-{th}\, in_h*{ratio_y:.3f} - {th}*0.28))"
+                
+                filter_complex = f"[0:v]scale=-1:{th}:force_original_aspect_ratio=increase,crop={tw}:{th}:{x_crop_expr}:{y_crop_expr}[v]"
         else:
             filter_complex = f"[0:v]scale={tw}:{th}:force_original_aspect_ratio=increase,crop={tw}:{th}[v]"
     else: # blur_pad
@@ -310,6 +379,15 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
     
     input_count = 1
     extra_inputs = []
+    
+    # Original video for audio if EMA was used
+    if ema_video_path:
+        audio_input_idx = input_count
+        extra_inputs.extend(["-ss", str(t1), "-i", input_path])
+        input_count += 1
+        a_src = f"[{audio_input_idx}:a]"
+    else:
+        a_src = "[0:a]"
     
     # 1. Custom Watermark Input
     has_watermark = watermark_path and os.path.exists(watermark_path)
@@ -335,12 +413,17 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
         extra_inputs.extend(["-i", sfx_path])
         input_count += 1
 
-    # Subtitle ASS Burn (With Windows colon escaping)
+    # Subtitle ASS Burn (With Windows path escaping & font directory support)
     v_current = "[v]"
     if subtitle_path and burn_subtitles and os.path.exists(subtitle_path):
-        ass_path_escaped = subtitle_path.replace('\\', '/').replace(':', '\\:')
+        ass_path_escaped = escape_ffmpeg_path(subtitle_path)
+        win_fonts_dir = "C:/Windows/Fonts" if (os.name == 'nt' and os.path.exists("C:/Windows/Fonts")) else None
+        
         if custom_font_path and os.path.exists(custom_font_path):
-            fonts_dir = os.path.dirname(custom_font_path).replace('\\', '/').replace(':', '\\:')
+            fonts_dir = escape_ffmpeg_path(os.path.dirname(custom_font_path))
+            sub_filter = f"{v_current}ass='{ass_path_escaped}':fontsdir='{fonts_dir}'[v_sub]"
+        elif win_fonts_dir:
+            fonts_dir = escape_ffmpeg_path(win_fonts_dir)
             sub_filter = f"{v_current}ass='{ass_path_escaped}':fontsdir='{fonts_dir}'[v_sub]"
         else:
             sub_filter = f"{v_current}ass='{ass_path_escaped}'[v_sub]"
@@ -380,15 +463,15 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
     if has_sfx:
         # Delay SFX pop sound by 200ms
         audio_parts.append(f"[{sfx_input_idx}:a]adelay=200|200[sfx_delayed]")
-        audio_parts.append("[0:a][sfx_delayed]amix=inputs=2:duration=first[a_main_sfx]")
+        audio_parts.append(f"{a_src}[sfx_delayed]amix=inputs=2:duration=first[a_main_sfx]")
         main_a_source = "[a_main_sfx]"
     else:
-        main_a_source = "[0:a]"
+        main_a_source = a_src
 
     if has_bgm:
         audio_filter = (
             f";{main_a_source}asplit[a_main_sp][a_side];"
-            f"[{bgm_input_idx}:a]volume=0.25[bgm_vol];"
+            f"[{bgm_input_idx}:a]volume=0.06[bgm_vol];"
             "[bgm_vol][a_side]sidechaincompress=threshold=0.08:ratio=10:attack=100:release=1000[bgm_ducked];"
             "[a_main_sp][bgm_ducked]amix=inputs=2:duration=first:dropout_transition=2,loudnorm=I=-16:TP=-1.5:LRA=11:linear=true[a_out]"
         )
@@ -400,23 +483,43 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
     else:
         filter_complex += audio_filter
 
-    cmd = [
-        "ffmpeg", "-y",
-        "-ss", str(t1),
-        "-i", input_path
-    ]
+    cmd = [FFMPEG_CMD, "-y"]
+    if ema_video_path:
+        cmd.extend(["-i", ema_video_path])
+    else:
+        cmd.extend(["-ss", str(t1), "-i", input_path])
     if extra_inputs:
         cmd.extend(extra_inputs)
+        
+    has_nvenc = await check_nvenc_availability()
+    
+    base_vcodec_args = []
+    if has_nvenc:
+        base_vcodec_args = [
+            "-c:v", "h264_nvenc",
+            "-preset", "fast",
+            "-b:v", "4M",
+            "-maxrate", "5M",
+            "-bufsize", "8M",
+            "-profile:v", "high",
+            "-pix_fmt", "yuv420p"
+        ]
+    else:
+        base_vcodec_args = [
+            "-c:v", "libx264",
+            "-preset", "veryfast",
+            "-crf", "21",
+            "-pix_fmt", "yuv420p"
+        ]
         
     cmd.extend([
         "-t", duration,
         "-filter_complex", filter_complex,
         "-map", map_v,
-        "-map", map_a,
-        "-c:v", "libx264",
-        "-preset", "ultrafast",
-        "-threads", "4",
-        "-crf", "23",
+        "-map", map_a
+    ])
+    cmd.extend(base_vcodec_args)
+    cmd.extend([
         "-c:a", "aac",
         "-b:a", "128k",
         "-async", "1",
@@ -424,13 +527,54 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
     ])
     
     import subprocess
-    def run_ffmpeg(command):
-        return subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    res = await asyncio.to_thread(
+        subprocess.run, cmd,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    stdout, stderr = res.stdout, res.stderr
+    
+    if res.returncode != 0:
+        error_msg = stderr.decode(errors='ignore')
+        if has_nvenc:
+            logger.warning(f"[FFmpeg] NVENC failed, retrying with libx264. Error: {error_msg}")
+            
+            # Fallback to libx264
+            cmd_fallback = [FFMPEG_CMD, "-y"]
+            if ema_video_path:
+                cmd_fallback.extend(["-i", ema_video_path])
+            else:
+                cmd_fallback.extend(["-ss", str(t1), "-i", input_path])
+            if extra_inputs:
+                cmd_fallback.extend(extra_inputs)
+                
+            cmd_fallback.extend([
+                "-t", duration,
+                "-filter_complex", filter_complex,
+                "-map", map_v,
+                "-map", map_a,
+                "-c:v", "libx264",
+                "-preset", "veryfast",
+                "-crf", "21",
+                "-pix_fmt", "yuv420p",
+                "-c:a", "aac",
+                "-b:a", "128k",
+                "-async", "1",
+                output_path
+            ])
+            
+            res_fb = await asyncio.to_thread(
+                subprocess.run, cmd_fallback,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+            stdout_fb, stderr_fb = res_fb.stdout, res_fb.stderr
+            if res_fb.returncode != 0:
+                if ema_video_path and os.path.exists(ema_video_path): os.remove(ema_video_path)
+                raise Exception(f"FFmpeg fallback libx264 failed with error: {stderr_fb.decode(errors='ignore')}")
+        else:
+            if ema_video_path and os.path.exists(ema_video_path): os.remove(ema_video_path)
+            raise Exception(f"FFmpeg failed with error: {error_msg}")
         
-    process = await asyncio.to_thread(run_ffmpeg, cmd)
-    if process.returncode != 0:
-        raise Exception(f"FFmpeg failed with error: {process.stderr.decode()}")
-        
+    if ema_video_path and os.path.exists(ema_video_path): os.remove(ema_video_path)
     print("[FFmpeg] Clip rendered successfully with Watermark & SFX!")
     return output_path
 
@@ -439,13 +583,16 @@ async def generate_viral_thumbnails(input_video_path: str, start_time: str, end_
     """
     Generates 3 Vertical 9:16 Thumbnail Covers with 3D Hook Title text overlay at 15%, 50%, and 85% of clip duration.
     """
-    def parse_time(ts_str):
+    def parse_time(ts):
+        if isinstance(ts, (int, float)): return float(ts)
+        ts_str = str(ts).strip()
         parts = ts_str.split(':')
-        if len(parts) == 2:
-            return int(parts[0]) * 60 + int(parts[1])
-        elif len(parts) == 3:
-            return int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
-        return 0
+        try:
+            if len(parts) == 2: return float(parts[0]) * 60.0 + float(parts[1])
+            elif len(parts) == 3: return float(parts[0]) * 3600.0 + float(parts[1]) * 60.0 + float(parts[2])
+            return float(ts_str)
+        except Exception:
+            return 0.0
 
     t1 = parse_time(start_time)
     t2 = parse_time(end_time)
@@ -466,7 +613,7 @@ async def generate_viral_thumbnails(input_video_path: str, start_time: str, end_
         )
         
         cmd = [
-            "ffmpeg", "-y",
+            FFMPEG_CMD, "-y",
             "-ss", f"{offset:.2f}",
             "-i", input_video_path,
             "-vframes", "1",
@@ -476,7 +623,11 @@ async def generate_viral_thumbnails(input_video_path: str, start_time: str, end_
         ]
         
         try:
-            await asyncio.to_thread(subprocess.run, cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            import subprocess
+            await asyncio.to_thread(
+                subprocess.run, cmd,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
             if os.path.exists(out_jpg):
                 thumbnail_paths.append(out_jpg)
         except Exception as e:

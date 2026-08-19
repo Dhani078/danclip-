@@ -82,7 +82,7 @@ def generate_viral_thumbnail(
         try:
             # Try Impact or Arial Bold for ultra-clean headline rendering
             font_title = ImageFont.truetype("impact.ttf", 76)
-        except:
+        except OSError:
             font_title = ImageFont.load_default()
             
         # Main Viral Hook Title Banner (Placed at upper center, y=140)

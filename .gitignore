@@ -1,13 +1,21 @@
 # Environment & Secrets
 .env
 cookies.txt
+*_for_notion.md
 
 # Database
-*.db
+*.db*
 *.db-journal
+*.db-shm
+*.db-wal
+*.db.backup
 
-# Storage (temp videos & exports)
+# Storage & Temp
 storage/
+ffmpeg_temp/
+scratch/
+*.zip
+*.pptx
 
 # Binaries & Media Outputs
 *.exe
