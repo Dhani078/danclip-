@@ -170,7 +170,18 @@ async def lifespan(app: FastAPI):
         
     cleanup_temp_storage()
     from services.notifications import start_telegram_bot_listener
-    listener_task = asyncio.create_task(start_telegram_bot_listener())
+    tg_token = ""
+    target_wh = (settings.DEFAULT_WEBHOOK_URL or "").strip()
+    if target_wh.startswith("tg:"):
+        parts = target_wh.split(":")
+        if len(parts) >= 3:
+            tg_token = f"{parts[1]}:{parts[2]}"
+    elif "/bot" in target_wh:
+        try:
+            tg_token = target_wh.split("/bot")[1].split("/")[0]
+        except Exception:
+            pass
+    listener_task = asyncio.create_task(start_telegram_bot_listener(tg_token))
     yield
     listener_task.cancel()
 
@@ -495,6 +506,7 @@ async def process_video_pipeline(job_id: str):
                 
                 clips_data.append({
                     "id": clip.id,
+                    "job_id": job_id,
                     "start_time": clip.start_time,
                     "end_time": clip.end_time,
                     "viral_score": clip.viral_score,
@@ -502,6 +514,12 @@ async def process_video_pipeline(job_id: str):
                     "hook_title": hook_title_text,
                     "caption": clip.caption,
                     "hashtags": clip.hashtags,
+                    "tiktok_titles": getattr(clip, "tiktok_titles", []),
+                    "reels_titles": getattr(clip, "reels_titles", []),
+                    "shorts_titles": getattr(clip, "shorts_titles", []),
+                    "tiktok_hashtags": getattr(clip, "tiktok_hashtags", []),
+                    "reels_hashtags": getattr(clip, "reels_hashtags", []),
+                    "shorts_hashtags": getattr(clip, "shorts_hashtags", []),
                     "tiktok_caption": getattr(clip, "tiktok_caption", clip.caption),
                     "reels_caption": getattr(clip, "reels_caption", clip.caption),
                     "shorts_caption": getattr(clip, "shorts_caption", clip.caption),
@@ -970,9 +988,10 @@ async def retrim_clip_endpoint(job_id: str, request: RetrimRequest, background_t
     if not job.clips or request.clip_index < 0 or request.clip_index >= len(job.clips):
         raise HTTPException(status_code=400, detail="Invalid clip index")
         
+    from utils.timestamp import parse_timestamp
     target_clip = job.clips[request.clip_index]
-    target_clip.start_sec = request.start_time
-    target_clip.end_sec = request.end_time
+    target_clip.start_sec = int(parse_timestamp(request.start_time))
+    target_clip.end_sec = int(parse_timestamp(request.end_time))
     await db.commit()
     job.status = JobStatus.EDITING
     job.progress_percentage = 80

@@ -269,11 +269,12 @@ async def start_telegram_bot_listener(bot_token: str = ""):
                                 try:
                                     from database import AsyncSessionLocal
                                     from models import VideoJob
+                                    from sqlalchemy.orm import selectinload
                                     from services.tiktok_publisher import publish_video_to_tiktok
                                     from config import settings
                                     
                                     async with AsyncSessionLocal() as session:
-                                        job = await session.get(VideoJob, jid)
+                                        job = await session.get(VideoJob, jid, options=[selectinload(VideoJob.clips)])
                                         if job and job.clips_json:
                                             clips = json.loads(job.clips_json)
                                             target_clip = next((c for c in clips if c.get("id") == cid), None)
