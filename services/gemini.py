@@ -161,13 +161,13 @@ async def analyze_video(video_path: str, custom_prompt: str = "", clip_count: in
         )
 
         models_to_try = [
-            'gemini-2.5-flash',
-            'gemini-2.0-flash',
-            'gemini-3.5-flash',
+            'gemini-3.7-flash',
             'gemini-3.6-flash',
-            'gemini-2.5-flash-lite',
-            'gemini-2.0-flash-lite',
-            'gemini-3.1-flash-lite'
+            'gemini-3.5-flash',
+            'gemini-2.5-flash',
+            'gemini-3.5-flash-lite',
+            'gemini-3.1-flash-lite',
+            'gemini-2.0-flash'
         ]
         
         response = None
@@ -327,9 +327,13 @@ async def analyze_transcript_chunks(transcript_text: str, custom_prompt: str = "
     all_clips = []
     
     models_to_try = [
+        'gemini-3.7-flash',
+        'gemini-3.6-flash',
+        'gemini-3.5-flash',
         'gemini-2.5-flash',
-        'gemini-2.0-flash',
-        'gemini-1.5-flash'
+        'gemini-3.5-flash-lite',
+        'gemini-3.1-flash-lite',
+        'gemini-2.0-flash'
     ]
     
     for i, chunk_text in enumerate(chunks):
