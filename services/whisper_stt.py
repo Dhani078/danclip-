@@ -341,7 +341,7 @@ PlayResY: 1920
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
 Style: Default,{font_name},{actual_font_size},{primary_color},&H000000FF,&H00000000,{back_color},-1,0,0,0,100,100,0,0,{border_style},{outline_val},{shadow_val},{alignment_val},60,60,{margin_v},1
-Style: HookHeader,Segoe UI Black,52,&H0000FFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,8,4,8,60,60,240,1
+Style: HookHeader,Segoe UI Black,62,&H0000F7FF,&H000000FF,&H00000000,&HCC000000,-1,0,0,0,100,100,0,0,1,10,6,8,60,60,240,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -362,7 +362,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     ass_events = []
     if hook_title:
         clean_hook = escape_ass_text(hook_title.strip().upper())
-        ass_events.append(f"Dialogue: 0,0:00:00.00,0:00:04.50,HookHeader,{{\\an8}}{clean_hook}")
+        # Pop-in animation: scale from 80% to 110% in 0.8s, then settle to 100% by 1.5s
+        pop_anim = r"{\an8\fscx80\fscy80\t(0,800,\fscx110\fscy110)\t(800,1500,\fscx100\fscy100)}"
+        ass_events.append(f"Dialogue: 0,0:00:00.00,0:00:04.50,HookHeader,{pop_anim}{clean_hook}")
     
     use_multicolor = (preset in ["mrbeast", "multicolor"])
     chunk_size = 2 if (word_karaoke or preset in ["hormozi", "mrbeast", "tiktok_neon"]) else 5

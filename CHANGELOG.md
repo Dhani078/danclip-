@@ -1,6 +1,33 @@
 # Changelog
 
-Semua perubahan yang signifikan pada proyek AutoClipWeb dari Fase 1 hingga Fase 5.
+Semua perubahan yang signifikan pada proyek AutoClipWeb dari Fase 1 hingga saat ini.
+
+## [3.1.0] - Viral Retention Upgrade (2026-08-24)
+
+### 🎯 Pacing Durasi AI (Micro-Story Engine)
+- **Prompt Gemini di-upgrade** dari target durasi `30s – 3 menit` menjadi **`25s – 60s`** (target utama 30–45 detik).
+- Menambahkan aturan **Complete Micro-Story**: setiap klip WAJIB mengandung 1 HOOK → 1 BODY → 1 PUNCHLINE yang utuh tanpa terpotong.
+- Aturan pemotongan diperjelas: `start_time` harus dimulai dari konsonan pertama kata pembuka, `end_time` harus berakhir setelah titik intonasi kesimpulan.
+
+### 🎨 Visual Hook Badge (Cinematic Upgrade)
+- **Font HookHeader** diperbesar dari 52pt → **62pt** (lebih menonjol di layar HP).
+- **Warna** di-upgrade ke Kuning Neon Terang (`&H0000F7FF`) dengan outline 10px dan shadow 6px.
+- **Background** plat hitam lebih gelap (`&HCC000000`) untuk kontras maksimal di background terang maupun gelap.
+- **Animasi Pop-In**: Teks hook membesar dari 80% → 110% → 100% selama 1.5 detik pertama menggunakan native ASS `\t(\fscx\fscy)` tanpa beban GPU.
+
+### 🔊 Pacing Audio (Zero-Latency Word Punch)
+- Menambahkan filter `silenceremove` di awal audio pipeline FFmpeg (`start_threshold=-40dB`).
+- Secara otomatis menghilangkan jeda hening/napas di detik ke-0 klip sehingga kata pertama langsung terdengar.
+
+### 📋 Dokumentasi & Workspace Rules
+- **[NEW]** `MEMORY.md` — Memori permanen proyek (arsitektur, parameter, keputusan desain).
+- **[NEW]** `.agents/rules/GEMINI.md` — Aturan workspace-level untuk AI assistant.
+- **[UPDATED]** `SYSTEM_DOCUMENTATION.md` — Diperbarui ke v3.1.0 dengan model Gemini 3.7 Flash.
+
+### 🤖 AI Model Upgrade (sebelumnya, di-commit terpisah)
+- Urutan prioritas model Gemini di-upgrade: `gemini-3.7-flash` (SOTA) → `gemini-3.6-flash` → `gemini-3.5-flash` → `gemini-2.5-flash` → `gemini-3.5-flash-lite` → `gemini-3.1-flash-lite` → `gemini-2.0-flash`.
+
+---
 
 ## [3.0.0] - Phase 5 Refactored Release
 

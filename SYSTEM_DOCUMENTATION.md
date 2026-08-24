@@ -1,7 +1,7 @@
 # 🚀 AutoClipWeb — Full Production Architecture & AI Engine Documentation
 
 > **Dokumentasi Komprehensif AutoClipWeb (AI Auto-Clipper Engine)**  
-> *Versi 3.0 Production-Ready (Phase 5 Refactored)*  
+> *Versi 3.1.0 Production-Ready (Viral Retention Upgrade)*  
 > Dokumentasi ini mencakup seluruh arsitektur, algoritma AI YuNet, sistem rendering FFmpeg, engine subtitle, anti-halusinasi Whisper, local video caching, garbage collector, keamanan, arsitektur database relasional, dan panduan pengujian.
 
 ---
@@ -12,7 +12,7 @@
 
 ### 🛠️ Technology Stack:
 - **Backend Framework**: Python 3.13 + FastAPI (Async) + Uvicorn
-- **AI Scene Analysis**: Google Gemini 3.6 Flash API
+- **AI Scene Analysis**: Google Gemini 3.7 Flash API (Flagship SOTA, dengan fallback chain 3.6 → 3.5 → 2.5 → lite)
 - **AI Face Detection & Tracking**: OpenCV YuNet ONNX (di `models_data/`)
 - **Speech-to-Text (STT)**: Faster-Whisper `large-v3` (CUDA INT8 Acceleration)
 - **Video Processing Engine**: FFmpeg dengan **Hardware Acceleration NVENC**, ASS Subtitle Burning, Audio Ducking, dan Dual-Pass Loudnorm.

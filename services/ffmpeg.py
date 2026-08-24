@@ -470,13 +470,14 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
 
     if has_bgm:
         audio_filter = (
-            f";{main_a_source}asplit[a_main_sp][a_side];"
+            f";{main_a_source}silenceremove=start_periods=1:start_silence=0.05:start_threshold=-40dB[a_trimmed];"
+            f"[a_trimmed]asplit[a_main_sp][a_side];"
             f"[{bgm_input_idx}:a]volume=0.06[bgm_vol];"
             "[bgm_vol][a_side]sidechaincompress=threshold=0.08:ratio=10:attack=100:release=1000[bgm_ducked];"
             "[a_main_sp][bgm_ducked]amix=inputs=2:duration=first:dropout_transition=2,loudnorm=I=-16:TP=-1.5:LRA=11:linear=true[a_out]"
         )
     else:
-        audio_filter = f";{main_a_source}loudnorm=I=-16:TP=-1.5:LRA=11:linear=true[a_out]"
+        audio_filter = f";{main_a_source}silenceremove=start_periods=1:start_silence=0.05:start_threshold=-40dB,loudnorm=I=-16:TP=-1.5:LRA=11:linear=true[a_out]"
 
     if audio_parts:
         filter_complex += ";" + ";".join(audio_parts) + audio_filter
