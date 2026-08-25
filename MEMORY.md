@@ -110,7 +110,12 @@ Urutan prioritas model yang digunakan di `services/gemini.py`:
 ---
 
 ## 🛡️ Prinsip Pengembangan
-
 1. **Zero-Bug Policy**: Setiap perubahan harus additive-only dan tidak boleh merusak alur yang sudah berjalan stabil.
-2. **Backward Compatibility**: Semua fitur baru harus kompatibel dengan job/klip yang sudah ada di database.
-3. **Graceful Degradation**: Jika fitur baru gagal (misal: model AI tidak tersedia), sistem harus fallback ke perilaku sebelumnya tanpa error.
+2. **Ponytail Simplicity Ladder (Anti Over-Engineering)**:
+   - *Rung 1: Does this need to exist?* → Jika tidak (YAGNI), jangan buat.
+   - *Rung 2: Already in this codebase?* → Gunakan ulang, jangan buat duplikasi kode.
+   - *Rung 3: Stdlib / Native Platform does it?* → Prioritaskan fitur bawaan (Python stdlib, HTML5/CSS, FFmpeg native) sebelum install package/dependency baru.
+   - *Rung 4: One line?* → Buat 1 baris yang padat dan mudah dibaca.
+   - *Rung 5: Minimum that works safely* → Tulis kode seminimal mungkin tanpa mengorbankan validasi, keamanan, atau error-handling.
+3. **Backward Compatibility**: Semua fitur baru harus kompatibel dengan job/klip yang sudah ada di database.
+4. **Graceful Degradation**: Jika fitur baru gagal (misal: model AI tidak tersedia), sistem harus fallback ke perilaku sebelumnya tanpa error.
