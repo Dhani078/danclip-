@@ -25,9 +25,30 @@ async def get_db():
 
 async def init_db():
     import asyncio
+    import sqlite3
     from alembic.config import Config
     from alembic import command
+    
     def run_migrations():
         alembic_cfg = Config("alembic.ini")
-        command.upgrade(alembic_cfg, "head")
+        try:
+            command.upgrade(alembic_cfg, "head")
+        except Exception:
+            pass
+            
+        # Fallback safe auto-column check for SQLite
+        try:
+            db_path = settings.DATABASE_URL.replace("sqlite+aiosqlite:///", "").replace("sqlite:///", "")
+            if os.path.exists(db_path):
+                conn = sqlite3.connect(db_path)
+                cursor = conn.cursor()
+                cursor.execute("PRAGMA table_info(video_jobs)")
+                cols = [row[1] for row in cursor.fetchall()]
+                if cols and "clip_mode" not in cols:
+                    cursor.execute("ALTER TABLE video_jobs ADD COLUMN clip_mode VARCHAR DEFAULT 'single'")
+                    conn.commit()
+                conn.close()
+        except Exception:
+            pass
+            
     await asyncio.to_thread(run_migrations)
