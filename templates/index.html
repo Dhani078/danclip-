@@ -49,10 +49,12 @@
         </div>
         
         <!-- Navigation Bar -->
-        <nav class="flex items-center gap-6 justify-center w-2/4">
-            <button onclick="showPage('home')" id="navHome" class="text-sm font-semibold text-emerald-400 border-b-2 border-emerald-400 pb-1 transition-colors">✨ Studio (Editor)</button>
-            <button onclick="showPage('myclips')" id="navMyClips" class="text-sm font-semibold text-zinc-400 hover:text-zinc-200 border-b-2 border-transparent pb-1 transition-colors">📂 My Clips (History)</button>
-            <button onclick="triggerCleanup()" id="navCleanup" class="text-sm font-semibold text-red-400 hover:text-red-300 border-b-2 border-transparent pb-1 transition-colors">🗑️ Bersihkan Storage</button>
+        <nav class="flex items-center gap-4 md:gap-6 justify-center">
+            <button onclick="showPage('home')" id="navHome" class="text-xs md:text-sm font-semibold text-emerald-400 border-b-2 border-emerald-400 pb-1 transition-colors">✨ Studio</button>
+            <button onclick="showPage('schedule')" id="navSchedule" class="text-xs md:text-sm font-semibold text-zinc-400 hover:text-zinc-200 border-b-2 border-transparent pb-1 transition-colors">📅 Schedule</button>
+            <button onclick="showPage('presets')" id="navPresets" class="text-xs md:text-sm font-semibold text-zinc-400 hover:text-zinc-200 border-b-2 border-transparent pb-1 transition-colors">🤖 SOW Presets</button>
+            <button onclick="showPage('myclips')" id="navMyClips" class="text-xs md:text-sm font-semibold text-zinc-400 hover:text-zinc-200 border-b-2 border-transparent pb-1 transition-colors">📂 My Clips</button>
+            <button onclick="triggerCleanup()" id="navCleanup" class="text-xs md:text-sm font-semibold text-red-400 hover:text-red-300 border-b-2 border-transparent pb-1 transition-colors">🗑️ Storage</button>
         </nav>
 
         <div class="flex items-center justify-end gap-4 text-xs font-mono text-zinc-400 w-1/4">
@@ -373,6 +375,121 @@
         </div>
         </div>
 
+        <!-- Page: Content Schedule -->
+        <div id="pageSchedule" class="hidden flex-col gap-6 w-full max-w-6xl mx-auto">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-zinc-900 border border-zinc-800 p-5 rounded-xl gap-4 shadow-xl">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-rose-600 via-pink-600 to-amber-500 flex items-center justify-center text-2xl shadow-lg shadow-rose-950/50">🎵</div>
+                    <div>
+                        <div class="flex items-center gap-2.5">
+                            <h2 class="text-base font-bold text-zinc-100">TikTok Auto-Publisher & Schedule Queue</h2>
+                            <span class="text-[11px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> @lexseeme (Lex)
+                            </span>
+                        </div>
+                        <p class="text-xs text-zinc-400 mt-1">Otomasi penjadwalan klip video langsung ke TikTok dengan jeda waktu anti-spam yang aman.</p>
+                    </div>
+                </div>
+                <div class="flex gap-2.5">
+                    <button onclick="refreshScheduleQueue()" class="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-200 px-4 py-2 rounded-lg border border-zinc-700 font-medium transition shadow-md flex items-center gap-1.5">
+                        <span>🔄 Refresh Antrean</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Setting Rules -->
+                <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 flex flex-col gap-4 shadow-xl">
+                    <h3 class="text-sm font-semibold text-zinc-100 flex items-center gap-2 pb-2 border-b border-zinc-800">⚙️ Aturan Penjadwalan</h3>
+                    <div>
+                        <label class="text-xs text-zinc-400 font-medium mb-1 block">Jeda Antar Postingan</label>
+                        <select id="scheduleInterval" onchange="refreshScheduleQueue()" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg text-xs text-zinc-200 p-2.5 focus:outline-none focus:border-zinc-600">
+                            <option value="2">Setiap 2 Jam Sekali</option>
+                            <option value="3" selected>Setiap 3 Jam Sekali (Rekomendasi Aman)</option>
+                            <option value="4">Setiap 4 Jam Sekali</option>
+                            <option value="6">Setiap 6 Jam Sekali (Mode Santai)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-zinc-400 font-medium mb-1 block">Mode Post TikTok</label>
+                        <select id="scheduleMode" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg text-xs text-zinc-200 p-2.5 focus:outline-none focus:border-zinc-600">
+                            <option value="inbox" selected>📥 Mode Draft Inbox (Aman & Review Dulu)</option>
+                            <option value="direct">🚀 Direct Publish (Langsung Tayang)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-zinc-400 font-medium mb-1 block">Privasi Default</label>
+                        <select id="schedulePrivacy" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg text-xs text-zinc-200 p-2.5 focus:outline-none focus:border-zinc-600">
+                            <option value="SELF_ONLY" selected>🔒 Private / Draft (Self Only)</option>
+                            <option value="PUBLIC_TO_EVERYONE">🌍 Public to Everyone</option>
+                            <option value="MUTUAL_FOLLOW_FRIENDS">👥 Mutual Friends Only</option>
+                        </select>
+                    </div>
+                    <div class="bg-zinc-950/70 border border-amber-500/20 rounded-lg p-3.5 text-[11px] text-zinc-300 leading-relaxed mt-auto">
+                        <span class="text-amber-400 font-bold">🛡️ Anti-Spam Safety:</span> Sistem TikTok membatasi upload beruntun. Jeda 3 jam menjaga akun Anda tetap berstatus reputasi baik (*high trust score*).
+                    </div>
+                </div>
+
+                <!-- Schedule Queue List -->
+                <div class="lg:col-span-2 bg-zinc-900 border border-zinc-800 rounded-xl p-5 flex flex-col gap-4 shadow-xl min-h-[420px]">
+                    <div class="flex justify-between items-center pb-2 border-b border-zinc-800">
+                        <h3 class="text-sm font-semibold text-zinc-100 flex items-center gap-2">📋 Antrean Klip Siap Publikasi</h3>
+                        <span id="queueCountBadge" class="text-[11px] font-mono bg-zinc-800 text-zinc-300 px-2.5 py-0.5 rounded font-semibold">0 Klip</span>
+                    </div>
+                    <div id="scheduleQueueList" class="flex flex-col gap-3 max-h-[500px] overflow-y-auto pr-1">
+                        <div class="text-zinc-500 text-xs italic text-center py-16">Memuat antrean video...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page: SOW Presets -->
+        <div id="pagePresets" class="hidden flex-col gap-6 w-full max-w-6xl mx-auto">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-zinc-900 border border-zinc-800 p-5 rounded-xl gap-4 shadow-xl">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-indigo-600 flex items-center justify-center text-2xl shadow-lg shadow-emerald-950/50">🤖</div>
+                    <div>
+                        <h2 class="text-base font-bold text-zinc-100">Bank Template SOW & Brief AI</h2>
+                        <p class="text-xs text-zinc-400 mt-1">Simpan dan gunakan template brief klien / afiliasi sekali klik tanpa perlu mengetik ulang.</p>
+                    </div>
+                </div>
+                <button onclick="openNewPresetModal()" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-lg transition flex items-center gap-2 shadow-lg shadow-emerald-900/30">
+                    <span>➕ Buat Preset Baru</span>
+                </button>
+            </div>
+
+            <!-- Presets Grid -->
+            <div id="presetsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+
+        <!-- Modal: Buat Preset Baru -->
+        <div id="newPresetModal" style="display: none;" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm items-center justify-center p-4">
+            <div class="bg-zinc-900 border border-zinc-800 rounded-xl max-w-lg w-full p-6 shadow-2xl flex flex-col gap-4">
+                <div class="flex justify-between items-center border-b border-zinc-800 pb-3">
+                    <h3 class="text-sm font-bold text-zinc-100 flex items-center gap-2"><span>✨</span> Tambah Preset SOW Baru</h3>
+                    <button onclick="closeNewPresetModal()" class="text-zinc-400 hover:text-white text-base">✕</button>
+                </div>
+                <div>
+                    <label class="text-xs text-zinc-400 font-medium mb-1 block">Nama Preset</label>
+                    <input type="text" id="presetTitle" placeholder="Contoh: Klien Baju Muslim / Skincare Glowing" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-zinc-100 focus:outline-none focus:border-zinc-600">
+                </div>
+                <div>
+                    <label class="text-xs text-zinc-400 font-medium mb-1 block">Target Keyword / Produk</label>
+                    <input type="text" id="presetKeyword" placeholder="Contoh: Gamis Premium, Serum Retinol" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-zinc-100 focus:outline-none focus:border-zinc-600">
+                </div>
+                <div>
+                    <label class="text-xs text-zinc-400 font-medium mb-1 block">Brief / SOW AI Prompt</label>
+                    <textarea id="presetPrompt" rows="4" placeholder="Tuliskan aturan ekstraksi, larangan, fokus pembahasan, dan hashtag wajib..." class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-xs text-zinc-100 focus:outline-none focus:border-zinc-600 font-mono resize-none"></textarea>
+                </div>
+                <div class="flex justify-end gap-2 pt-2 border-t border-zinc-800">
+                    <button onclick="closeNewPresetModal()" class="px-3 py-1.5 text-xs text-zinc-400 hover:text-white">Batal</button>
+                    <button onclick="saveNewPreset()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-lg shadow-lg">Simpan Preset</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Page: My Clips (History) -->
         <div id="pageMyClips" class="hidden flex-col gap-6">
             <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 shadow-xl min-h-[500px]">
@@ -435,26 +552,293 @@
         });
 
         function showPage(pageId) {
-            document.getElementById('pageHome').classList.add('hidden');
-            document.getElementById('pageHome').classList.remove('grid');
-            document.getElementById('pageMyClips').classList.add('hidden');
-            document.getElementById('pageMyClips').classList.remove('flex');
+            const pages = ['pageHome', 'pageSchedule', 'pagePresets', 'pageMyClips'];
+            const navs = ['navHome', 'navSchedule', 'navPresets', 'navMyClips'];
             
+            pages.forEach(p => {
+                const el = document.getElementById(p);
+                if (el) {
+                    el.classList.add('hidden');
+                    el.classList.remove('grid', 'flex');
+                }
+            });
+            navs.forEach(n => {
+                const el = document.getElementById(n);
+                if (el) {
+                    el.classList.remove('text-emerald-400', 'border-emerald-400');
+                    el.classList.add('text-zinc-400', 'border-transparent');
+                }
+            });
+
             if (pageId === 'home') {
                 document.getElementById('pageHome').classList.remove('hidden');
                 document.getElementById('pageHome').classList.add('grid');
                 document.getElementById('navHome').classList.add('text-emerald-400', 'border-emerald-400');
                 document.getElementById('navHome').classList.remove('text-zinc-400', 'border-transparent');
-                document.getElementById('navMyClips').classList.remove('text-emerald-400', 'border-emerald-400');
-                document.getElementById('navMyClips').classList.add('text-zinc-400', 'border-transparent');
+            } else if (pageId === 'schedule') {
+                document.getElementById('pageSchedule').classList.remove('hidden');
+                document.getElementById('pageSchedule').classList.add('flex');
+                document.getElementById('navSchedule').classList.add('text-emerald-400', 'border-emerald-400');
+                document.getElementById('navSchedule').classList.remove('text-zinc-400', 'border-transparent');
+                refreshScheduleQueue();
+            } else if (pageId === 'presets') {
+                document.getElementById('pagePresets').classList.remove('hidden');
+                document.getElementById('pagePresets').classList.add('flex');
+                document.getElementById('navPresets').classList.add('text-emerald-400', 'border-emerald-400');
+                document.getElementById('navPresets').classList.remove('text-zinc-400', 'border-transparent');
+                loadPresets();
             } else if (pageId === 'myclips') {
                 document.getElementById('pageMyClips').classList.remove('hidden');
                 document.getElementById('pageMyClips').classList.add('flex');
                 document.getElementById('navMyClips').classList.add('text-emerald-400', 'border-emerald-400');
                 document.getElementById('navMyClips').classList.remove('text-zinc-400', 'border-transparent');
-                document.getElementById('navHome').classList.remove('text-emerald-400', 'border-emerald-400');
-                document.getElementById('navHome').classList.add('text-zinc-400', 'border-transparent');
                 loadHistory();
+            }
+        }
+
+        // Built-in Golden Presets
+        const DEFAULT_PRESETS = [
+            {
+                id: '4nose_braven',
+                title: '💎 Client 4Nose / Parfum Braven (SOW Default)',
+                keyword: 'Parfum Braven',
+                badge: 'Brand SOW',
+                color: 'border-amber-500/40 text-amber-300',
+                prompt: `WAJIB patuh SOW 4Nose:
+1. Ekstrak momen pembahasan parfum yang bernilai edukatif, provokatif, atau review performa aroma.
+2. Hook wajib memicu rasa penasaran tentang wangi/ketahanan.
+3. Wajib sertakan hashtag: #4nose #4noseMK #motionklip #ezklip #parfumviral
+4. Tag/mention: @4noseofficial @indofragz @syaifulstayscentful @jery16_ @eddeparfum`
+            },
+            {
+                id: 'skincare_viral',
+                title: '✨ Viral Skincare & Beauty Affiliate',
+                keyword: 'Serum Retinol / Sunscreen',
+                badge: 'Beauty & Glow',
+                color: 'border-pink-500/40 text-pink-300',
+                prompt: `Fokus pada:
+1. Masalah kulit umum (jerawat, kusam, flek) dan solusi bahan aktif.
+2. Momen review jujur hasil sebelum/sesudah.
+3. Hook emosional: "Jangan salah pakai bahan ini!" atau "Kulit auto glowing!".
+4. Hashtag: #skincareroutine #racunskincare #beautytips #fypindonesia`
+            },
+            {
+                id: 'podcast_mindset',
+                title: '🎙️ High-Impact Podcast & Mindset',
+                keyword: 'Mindset Sukses',
+                badge: 'Deep Talk',
+                color: 'border-cyan-500/40 text-cyan-300',
+                prompt: `Ekstrak momen:
+1. Percakapan mendalam tentang filosofi hidup, bisnis, atau keuangan.
+2. Punchline penutup yang menampar/menginspirasi penonton.
+3. Pacing padat tanpa kata bertele-tele.
+4. Hashtag: #mindsetsukses #podcastindonesia #selfimprovement #motivasi`
+            },
+            {
+                id: 'gadget_tech',
+                title: '📱 Gadget & Tech Worth-It Review',
+                keyword: 'HP Flagship / Earbuds',
+                badge: 'Tech & Gadget',
+                color: 'border-emerald-500/40 text-emerald-300',
+                prompt: `Fokus pada:
+1. Kelebihan unik fitur produk dibanding kompetitor sekelasnya.
+2. Perbandingan harga vs kualitas (Price to Performance).
+3. Hook penonton: "Jangan beli sebelum tahu ini!".
+4. Hashtag: #gadgetunboxing #techreview #rekomendasihp #racungadget`
+            }
+        ];
+
+        function getStoredPresets() {
+            try {
+                const stored = localStorage.getItem('autoclip_custom_presets');
+                const custom = stored ? JSON.parse(stored) : [];
+                return [...DEFAULT_PRESETS, ...custom];
+            } catch (e) {
+                return DEFAULT_PRESETS;
+            }
+        }
+
+        function loadPresets() {
+            const grid = document.getElementById('presetsGrid');
+            if (!grid) return;
+            const presets = getStoredPresets();
+            let html = '';
+            presets.forEach((p, idx) => {
+                const isCustom = idx >= DEFAULT_PRESETS.length;
+                html += `
+                <div class="bg-zinc-950 border border-zinc-800 hover:border-zinc-700 rounded-xl p-5 flex flex-col justify-between gap-4 transition shadow-xl relative group">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full border bg-zinc-900 ${p.color || 'border-zinc-700 text-zinc-300'} font-semibold">${esc(p.badge || 'Custom Preset')}</span>
+                            ${isCustom ? `<button onclick="deleteCustomPreset('${esc(p.id)}')" class="text-xs text-rose-400 hover:text-rose-300 bg-rose-500/10 px-2 py-0.5 rounded" title="Hapus">🗑️ Hapus</button>` : ''}
+                        </div>
+                        <h3 class="text-sm font-bold text-zinc-100 mb-1.5">${esc(p.title)}</h3>
+                        <div class="text-[11px] text-emerald-400 font-mono mb-3">🎯 Keyword: <span class="text-zinc-300">${esc(p.keyword || '-')}</span></div>
+                        <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-[11px] text-zinc-300 font-mono leading-relaxed line-clamp-4 whitespace-pre-line">${esc(p.prompt)}</div>
+                    </div>
+                    <button onclick="applyPreset('${esc(p.id)}')" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold py-2 px-3 rounded-lg transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50">
+                        <span>🚀 Gunakan di Studio</span>
+                    </button>
+                </div>
+                `;
+            });
+            grid.innerHTML = html;
+        }
+
+        function applyPreset(presetId) {
+            const presets = getStoredPresets();
+            const p = presets.find(x => x.id === presetId);
+            if (!p) return;
+            
+            const promptEl = document.getElementById('customPrompt');
+            const kwEl = document.getElementById('target_keyword');
+            if (promptEl) promptEl.value = p.prompt;
+            if (kwEl && p.keyword) kwEl.value = p.keyword;
+            
+            showPage('home');
+            showToast(`✅ Preset "${p.title}" berhasil dipasang ke Studio!`);
+            logToTerminal(`Applied SOW Preset: ${p.title}`, 'success');
+        }
+
+        function openNewPresetModal() {
+            document.getElementById('newPresetModal').style.display = 'flex';
+        }
+        function closeNewPresetModal() {
+            document.getElementById('newPresetModal').style.display = 'none';
+        }
+        function saveNewPreset() {
+            const title = document.getElementById('presetTitle').value.trim();
+            const keyword = document.getElementById('presetKeyword').value.trim();
+            const prompt = document.getElementById('presetPrompt').value.trim();
+            if (!title || !prompt) {
+                showToast("⚠️ Mohon isi Nama Preset dan Brief Prompt!");
+                return;
+            }
+            try {
+                const stored = localStorage.getItem('autoclip_custom_presets');
+                const custom = stored ? JSON.parse(stored) : [];
+                custom.push({
+                    id: 'custom_' + Date.now(),
+                    title,
+                    keyword,
+                    prompt,
+                    badge: 'Custom SOW',
+                    color: 'border-purple-500/40 text-purple-300'
+                });
+                localStorage.setItem('autoclip_custom_presets', JSON.stringify(custom));
+                closeNewPresetModal();
+                loadPresets();
+                showToast("✅ Preset baru berhasil disimpan!");
+            } catch (e) {
+                showToast("Gagal menyimpan preset: " + e.message);
+            }
+        }
+        function deleteCustomPreset(id) {
+            try {
+                const stored = localStorage.getItem('autoclip_custom_presets');
+                let custom = stored ? JSON.parse(stored) : [];
+                custom = custom.filter(x => x.id !== id);
+                localStorage.setItem('autoclip_custom_presets', JSON.stringify(custom));
+                loadPresets();
+                showToast("🗑️ Preset dihapus");
+            } catch (e) {}
+        }
+
+        async function refreshScheduleQueue() {
+            const queueList = document.getElementById('scheduleQueueList');
+            const countBadge = document.getElementById('queueCountBadge');
+            if (!queueList) return;
+            queueList.innerHTML = '<div class="text-zinc-400 text-xs italic py-10 text-center animate-pulse">Menghitung jadwal publikasi klip...</div>';
+            
+            try {
+                const res = await fetch('/api/v1/clips/history');
+                if (!res.ok) throw new Error('Gagal mengambil data klip');
+                const history = await res.json();
+                
+                const intervalHours = parseInt(document.getElementById('scheduleInterval')?.value || 3);
+                let scheduledItems = [];
+                let now = new Date();
+                
+                history.filter(j => j.status === 'COMPLETED').forEach(j => {
+                    let clips = [];
+                    try { clips = JSON.parse(j.clips_json || '[]'); } catch (e) {}
+                    const outputs = (j.output_video_path || '').split(',');
+                    clips.forEach((c, idx) => {
+                        if (outputs[idx]) {
+                            scheduledItems.push({
+                                jobId: j.id,
+                                clipIndex: idx,
+                                hookTitle: c.hook_title || `Clip #${idx + 1}`,
+                                caption: c.caption || j.video_title,
+                                hashtags: c.hashtags || [],
+                                videoPath: outputs[idx],
+                                viralScore: c.viral_score || 85,
+                                duration: `${c.start_time} - ${c.end_time}`
+                            });
+                        }
+                    });
+                });
+                
+                if (countBadge) countBadge.textContent = `${scheduledItems.length} Klip Siap`;
+                
+                if (scheduledItems.length === 0) {
+                    queueList.innerHTML = '<div class="text-zinc-500 text-xs italic text-center py-16">Belum ada klip yang selesai. Ekstrak video di Studio terlebih dahulu!</div>';
+                    return;
+                }
+                
+                let html = '';
+                scheduledItems.slice(0, 10).forEach((item, idx) => {
+                    const postTime = new Date(now.getTime() + (idx * intervalHours * 60 * 60 * 1000));
+                    const timeStr = postTime.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' }) + ' • ' + postTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+                    
+                    html += `
+                    <div class="bg-zinc-950 border border-zinc-800/80 hover:border-zinc-700 rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition shadow-md">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="w-9 h-9 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-xs font-bold text-zinc-300 flex-shrink-0">
+                                #${idx + 1}
+                            </div>
+                            <div class="min-w-0">
+                                <h4 class="text-xs font-bold text-zinc-100 truncate">${esc(item.hookTitle)}</h4>
+                                <div class="flex items-center gap-2 mt-1 flex-wrap">
+                                    <span class="text-[11px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">🕒 ${timeStr}</span>
+                                    <span class="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">Score: ${item.viralScore}/100</span>
+                                    <span class="text-[10px] font-mono text-zinc-400 bg-zinc-900 px-2 py-0.5 rounded">${esc(item.duration)}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+                            <button onclick="postScheduledClip('${esc(item.jobId)}', ${item.clipIndex}, '${esc(item.videoPath)}', '${esc(item.hookTitle)}')" class="text-xs bg-rose-600 hover:bg-rose-500 text-white font-semibold py-1.5 px-3 rounded-lg transition flex items-center gap-1.5 shadow-md shadow-rose-950/40">
+                                <span>🚀 Publish TikTok</span>
+                            </button>
+                        </div>
+                    </div>
+                    `;
+                });
+                queueList.innerHTML = html;
+            } catch (e) {
+                queueList.innerHTML = `<div class="text-red-400 text-xs py-8 text-center">Gagal memuat antrean: ${e.message}</div>`;
+            }
+        }
+
+        async function postScheduledClip(jobId, clipIndex, videoPath, title) {
+            showToast(`Mengunggah "${title}" ke akun TikTok @lexseeme...`);
+            logToTerminal(`Publishing clip to TikTok (@lexseeme): ${title}...`, 'info');
+            try {
+                const res = await fetch(`/api/v1/clips/${jobId}/post_tiktok`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ clip_index: clipIndex, auto_retry: true })
+                });
+                const data = await res.json();
+                if (res.ok && data.status === 'success') {
+                    showToast("✅ Berhasil dikirim ke TikTok (@lexseeme)!");
+                    logToTerminal(`TikTok Upload Success! Publish ID: ${data.publish_id || 'OK'}`, 'success');
+                } else {
+                    throw new Error(data.detail || data.message || 'Upload gagal');
+                }
+            } catch (e) {
+                showToast(`TikTok Upload Error: ${e.message}`);
+                logToTerminal(`TikTok Upload Error: ${e.message}`, 'error');
             }
         }
 
@@ -492,19 +876,21 @@
                     html += `
                     <div class="bg-zinc-950 border border-zinc-800 hover:border-emerald-500/50 rounded-lg p-4 flex flex-col gap-3 transition cursor-pointer group relative overflow-hidden history-job-item" data-action="loadJob" data-job-id="${esc(job.id)}">
                         <div class="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-                        <div class="flex justify-between items-start relative z-10 pointer-events-none">
+                        <div class="flex justify-between items-start relative z-10 pointer-events-none pr-16">
                             <h3 class="text-sm font-semibold text-zinc-200 line-clamp-2 group-hover:text-emerald-400 transition" title="${esc(job.video_title || job.youtube_url)}">${esc(job.video_title || job.youtube_url)}</h3>
                         </div>
                         <div class="text-[11px] text-zinc-400 font-mono relative z-10 pointer-events-none">${esc(dateStr)}</div>
-                        <div class="flex items-center justify-between mt-auto pt-2 border-t border-zinc-900 relative z-10 pointer-events-none">
+                        <div class="flex items-center justify-between mt-auto pt-2 border-t border-zinc-900 relative z-10">
                             <span class="text-[11px] font-mono font-medium px-2 py-0.5 rounded bg-zinc-900 ${esc(statusColor)}">${esc(job.status)}</span>
-                            <span class="text-[11px] text-zinc-400 font-mono font-semibold bg-zinc-900 px-2 py-0.5 rounded">${esc(clipsCount)} Clips</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[11px] text-zinc-400 font-mono font-semibold bg-zinc-900 px-2 py-0.5 rounded">${esc(clipsCount)} Clips</span>
+                                ${job.status === 'COMPLETED' ? `<a href="/api/v1/clips/${esc(job.id)}/zip" class="text-[11px] bg-indigo-500/20 text-indigo-300 hover:text-white hover:bg-indigo-600 px-2.5 py-0.5 rounded transition flex items-center gap-1 font-semibold" title="Download semua klip dalam file .ZIP" onclick="event.stopPropagation()">📦 ZIP</a>` : ''}
+                            </div>
                         </div>
                         <div class="absolute top-2 right-2 z-20">
-                            <button data-action="deleteJob" data-job-id="${esc(job.id)}" class="text-[11px] bg-rose-500/20 text-rose-400 hover:text-rose-300 hover:bg-rose-500/40 px-2 py-1 rounded" title="Delete Job">🗑️ Delete</button>
+                            <button data-action="deleteJob" data-job-id="${esc(job.id)}" class="text-[11px] bg-rose-500/20 text-rose-400 hover:text-rose-300 hover:bg-rose-500/40 px-2 py-1 rounded" title="Delete Job">🗑️</button>
                         </div>
                     </div>
-
                     `;
                 });
                 grid.innerHTML = html;

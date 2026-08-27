@@ -7,10 +7,15 @@
 ## 📌 Identitas Proyek
 
 - **Nama**: AutoClipWeb (AI Auto-Clipper Engine)
-- **Versi Aktif**: v3.1.0
+- **Versi Aktif**: v3.3.0
 - **Repository**: https://github.com/Dhani078/danclip-.git (branch: `main`)
 - **Stack**: Python 3.13 + FastAPI + SQLite (Async) + FFmpeg (NVENC) + Faster-Whisper (CUDA) + Gemini AI
 - **Deployment**: Lokal di `c:\xampp\htdocs\autoclipweb`, diakses via `http://127.0.0.1:8000`
+- **Fitur Navigasi Utama**:
+  1. `Studio (Editor)`: Mesin ekstraksi video viral AI (Single Clip & 3-Beat Story Montage).
+  2. `Content Schedule`: Antrean jadwal posting otomatis TikTok `@lexseeme` dengan jeda anti-spam.
+  3. `SOW Presets`: Bank template brief AI (4Nose Parfum, Skincare, Podcast, Gadget).
+  4. `My Clips (History)`: Arsip pekerjaan lengkap dengan 1-click `Download All ZIP` (`/api/v1/clips/{job_id}/zip`).
 
 ---
 

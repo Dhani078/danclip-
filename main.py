@@ -814,6 +814,40 @@ async def get_clip(job_id: str, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Job not found")
     return job
 
+@app.get("/api/v1/clips/{job_id}/zip")
+async def download_job_zip(job_id: str, db: AsyncSession = Depends(get_db)):
+    """
+    Packages all generated clips (.mp4) and caption text for a completed job into a single .zip file.
+    Uses native Python zipfile without third-party bloat.
+    """
+    from sqlalchemy.orm import selectinload
+    import io
+    import zipfile
+    
+    job = await db.get(VideoJob, job_id, options=[selectinload(VideoJob.clips)])
+    if not job or not job.clips:
+        raise HTTPException(status_code=404, detail="Job or clips not found")
+        
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for c in job.clips:
+            if c.output_path:
+                rel_path = c.output_path.lstrip("/").replace("exports/", "")
+                real_file_path = os.path.join(settings.STORAGE_DIR, "exports", rel_path)
+                if os.path.exists(real_file_path):
+                    zip_file.write(real_file_path, arcname=f"clip_{c.clip_index + 1}_{c.id[:8]}.mp4")
+            
+            caption_text = f"Hook Title: {c.hook_title or ''}\n\nCaption:\n{c.caption or ''}\n\nHashtags:\n{c.hashtags_json or ''}\n"
+            zip_file.writestr(f"caption_clip_{c.clip_index + 1}_{c.id[:8]}.txt", caption_text)
+            
+    zip_buffer.seek(0)
+    filename = f"AutoClip_{job_id[:8]}_all_clips.zip"
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
 
 @app.get("/api/v1/clips/{job_id}/stream")
 async def stream_clip_progress(job_id: str):

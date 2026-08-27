@@ -2,6 +2,27 @@
 
 Semua perubahan yang signifikan pada proyek AutoClipWeb dari Fase 1 hingga saat ini.
 
+## [3.3.0] - Content Schedule, SOW Presets & Bulk ZIP Vault Upgrade (2026-08-28)
+
+### 📅 Content Schedule & Auto-Publisher Queue
+- **Antrean Posting TikTok Terjadwal**: Membantu menjadwalkan publikasi klip ke akun TikTok (`@lexseeme`) dengan jeda interval anti-spam (2 jam, 3 jam, 4 jam, 6 jam).
+- **Mode Draft & Privacy Control**: Pilihan antara *Mode Inbox Draft* atau *Direct Publish*, dengan pengaturan visibilitas privasi (*Private / Mutual / Public*).
+
+### 🤖 Bank Template SOW & Brief AI (Preset Manager)
+- **Built-in Presets Siap Pakai**:
+  - *Client 4Nose / Parfum Braven (SOW Default)*
+  - *Viral Skincare & Beauty Affiliate*
+  - *High-Impact Podcast & Mindset*
+  - *Gadget & Tech Worth-It Review*
+- **1-Click Apply to Studio**: Sekali klik tombol "Gunakan di Studio", prompt SOW dan target keyword langsung terisi di editor.
+- **Custom Preset Builder**: User dapat menambah dan menghapus preset kustom yang disimpan di *localStorage*.
+
+### 📦 1-Click Bulk ZIP Downloader
+- **Endpoint `/api/v1/clips/{job_id}/zip`**: Mengemas seluruh file MP4 klip dan teks caption ke dalam 1 file `.zip` secara instan menggunakan standard library `zipfile` tanpa dependensi pihak ketiga (*Ponytail Simplicity Ladder*).
+- **Tombol ZIP di Riwayat**: Setiap kartu pekerjaan yang selesai di tab *My Clips* dilengkapi tombol 📦 ZIP.
+
+---
+
 ## [3.2.0] - AI Multi-Cut Story Montage Upgrade (2026-08-27)
 
 ### 🧵 AI Story Montage & Multi-Cut Narrative Engine
