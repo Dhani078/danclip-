@@ -75,7 +75,7 @@ def sanitize_hashtags(tag_list: list, default_tags: list) -> list:
             
     return cleaned[:5]
 
-async def analyze_video(video_path: str, custom_prompt: str = "", clip_count: int = 3, custom_api_key: str = "", target_keyword: str = "", target_start_time: str = "", target_end_time: str = "") -> GeminiAnalysisSchema:
+async def analyze_video(video_path: str, custom_prompt: str = "", clip_count: int = 3, custom_api_key: str = "", target_keyword: str = "", target_start_time: str = "", target_end_time: str = "", clip_mode: str = "single") -> GeminiAnalysisSchema:
     api_key = custom_api_key.strip() if custom_api_key and custom_api_key.strip() else settings.GEMINI_API_KEY
     if not api_key:
         raise Exception("GEMINI_API_KEY is missing. Please set it in .env or provide your custom API Key.")
@@ -125,11 +125,23 @@ async def analyze_video(video_path: str, custom_prompt: str = "", clip_count: in
                 f"Jika tidak ada kecocokan sama sekali di dalam rentang waktu ini, kembalikan JSON klip kosong `[]`, jangan mengarang waktu lain!\n\n"
             )
 
+        montage_instruction = ""
+        if clip_mode == "montage":
+            montage_instruction = (
+                f"🧵 MODE STORY MONTAGE / MULTI-CUT NARRATIVE RECAP (SANGAT KRITIS):\n"
+                f"Alih-alih hanya mengambil 1 potongan lurus, tugas Anda adalah membuat klip berbentuk STORY MONTAGE (rangkuman narasi 3-Beat) yang menggabungkan 2 hingga 3 potongan momen terpisah dari video yang saling berkesinambungan secara logis:\n"
+                f"- Beat 1 (Hook / Premis): Potongan pembuka dari awal video yang memicu rasa penasaran / pertanyaan (durasi 5-8 detik).\n"
+                f"- Beat 2 (Explanation / Proof): Potongan argumen inti / fakta / bukti dari tengah video yang menjawab atau memperdalam Beat 1 (durasi 12-20 detik). Pastikan potongannya diawali kata hubung alami (misal: 'Masalahnya...', 'Kenapa? Karena...', 'Faktanya...') dan TIDAK menggunakan kata ganti yang membingungkan tanpa subjek jelas.\n"
+                f"- Beat 3 (Punchline / Conclusion): Potongan kesimpulan / solusi pamungkas dari akhir video (durasi 6-10 detik).\n"
+                f"- Format Output: Set `is_montage: true` dan isi array `segments` dengan 2-3 item: `[{{\"start_time\": \"01:15\", \"end_time\": \"01:22\", \"role\": \"hook\"}}, {{\"start_time\": \"08:30\", \"end_time\": \"08:45\", \"role\": \"explanation\"}}, {{\"start_time\": \"16:10\", \"end_time\": \"16:18\", \"role\": \"punchline\"}}]`. `start_time` klip utama diisi waktu mulai segmen 1, dan `end_time` klip utama diisi waktu selesai segmen terakhir. Total akumulasi durasi seluruh segmen harus antara 25-45 detik!\n\n"
+            )
+
         clip_count_instruction = f"Tugas Anda adalah mengekstrak SEBANYAK MUNGKIN klip momen TERBAIK & PALING POTENSIAL VIRAL dari video ini.\n\n" if clip_count == 0 else f"Tugas Anda adalah mengekstrak {clip_count} klip momen TERBAIK & PALING POTENSIAL VIRAL dari video ini.\n\n"
         prompt = (
             f"Bertindaklah sebagai Chief Content Officer, Master Viral Strategist, & Lead Editor untuk Short-Form Video (TikTok, IG Reels, YouTube Shorts).\n"
             f"{clip_count_instruction}"
             f"{user_instruction}"
+            f"{montage_instruction}"
             f"{keyword_instruction}"
             f"{time_constraint_instruction}"
             f"{VIRALITY_CRITERIA}\n"
@@ -284,7 +296,7 @@ async def analyze_video(video_path: str, custom_prompt: str = "", clip_count: in
     except Exception as e:
         raise Exception(f"Gemini API Error: {str(e)}")
 
-async def analyze_transcript_chunks(transcript_text: str, custom_prompt: str = "", clip_count: int = 3, custom_api_key: str = "") -> GeminiAnalysisSchema:
+async def analyze_transcript_chunks(transcript_text: str, custom_prompt: str = "", clip_count: int = 3, custom_api_key: str = "", clip_mode: str = "single") -> GeminiAnalysisSchema:
     api_key = custom_api_key.strip() if custom_api_key and custom_api_key.strip() else settings.GEMINI_API_KEY
     if not api_key:
         raise Exception("GEMINI_API_KEY is missing. Please set it in .env or provide your custom API Key.")
@@ -342,12 +354,24 @@ async def analyze_transcript_chunks(transcript_text: str, custom_prompt: str = "
             f"'{custom_prompt}'\n\n"
         ) if custom_prompt else ""
 
+        montage_instruction = ""
+        if clip_mode == "montage":
+            montage_instruction = (
+                f"🧵 MODE STORY MONTAGE / MULTI-CUT NARRATIVE RECAP (SANGAT KRITIS):\n"
+                f"Tugas Anda mengekstrak klip berbentuk STORY MONTAGE (rangkuman narasi 3-Beat) yang menggabungkan 2 hingga 3 potongan momen terpisah yang saling berkesinambungan:\n"
+                f"- Beat 1 (Hook): Potongan pembuka (durasi 5-8 detik).\n"
+                f"- Beat 2 (Explanation): Potongan argumen inti (durasi 12-20 detik).\n"
+                f"- Beat 3 (Punchline): Potongan kesimpulan (durasi 6-10 detik).\n"
+                f"- Format Output: Set `is_montage: true` dan isi array `segments` dengan 2-3 item: `[{{\"start_time\": \"01:15\", \"end_time\": \"01:22\", \"role\": \"hook\"}}, {{\"start_time\": \"08:30\", \"end_time\": \"08:45\", \"role\": \"explanation\"}}, {{\"start_time\": \"16:10\", \"end_time\": \"16:18\", \"role\": \"punchline\"}}]`. Total durasi akumulasi 25-45 detik.\n\n"
+            )
+
         clip_count_instruction = f"Tugas Anda mengekstrak SEBANYAK MUNGKIN klip momen TERBAIK dari bagian transkrip ini.\n\n" if clip_count == 0 else f"Tugas Anda mengekstrak hingga {clip_count} klip momen TERBAIK dari bagian transkrip ini.\n\n"
         prompt = (
             f"Bertindaklah sebagai Chief Content Officer & Master Viral Strategist.\n"
             f"Ini adalah BAGIAN {i+1} dari {len(chunks)} dari sebuah transkrip video panjang.\n"
             f"{clip_count_instruction}"
             f"{user_instruction}"
+            f"{montage_instruction}"
             f"{VIRALITY_CRITERIA}\n"
             f"📌 PEDOMAN EKSTRAKSI MASTERCLASS (STRICT COMPLETE MICRO-STORY RULES):\n"
             f"1. DURASI MICRO-STORY OPTIMAL (25 DETIK - 60 DETIK): Durasi ideal klip adalah 25 detik hingga 60 detik. Target utama: 30-45 detik. DILARANG KERAS membuat klip terlalu pendek (<20 detik) ATAU terlalu panjang (>90 detik). Setiap klip WAJIB mengandung SATU cerita mikro yang utuh: 1 HOOK → 1 BODY → 1 PUNCHLINE.\n"

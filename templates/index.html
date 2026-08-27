@@ -221,6 +221,13 @@
                                         </select>
                                     </div>
                                 </div>
+                                <div>
+                                    <label class="text-[11px] text-emerald-400 font-semibold uppercase tracking-wider mb-1 block">Mode Ekstraksi AI</label>
+                                    <select id="clipMode" class="w-full bg-zinc-900 border border-emerald-500/40 rounded text-xs text-emerald-300 font-semibold py-1.5 px-2 focus:outline-none focus:border-emerald-400">
+                                        <option value="single" selected>🎯 Single Continuous Clip (Standar 1 Momen Utuh)</option>
+                                        <option value="montage">🧵 Story Montage (3-Beat Multi-Cut Narrative Recap)</option>
+                                    </select>
+                                </div>
 
                             </div>
 
@@ -678,9 +685,10 @@
                             <div class="flex-1 flex flex-col gap-4 min-w-0">
                                 <div class="flex justify-between items-center bg-zinc-950/80 border border-zinc-800/80 p-3.5 rounded-lg">
                                     <div>
-                                        <div class="flex items-center gap-2">
+                                        <div class="flex items-center gap-2 flex-wrap">
                                             <h3 class="text-base font-bold text-zinc-100">Clip ${index + 1}</h3>
                                             <span class="font-mono text-xs text-zinc-400 bg-zinc-900 border border-zinc-800 px-2.5 py-0.5 rounded">⏱️ ${esc(clip.start_time)} - ${esc(clip.end_time)}</span>
+                                            ${clip.is_montage ? `<span class="bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 px-2 py-0.5 rounded text-[10px] font-mono font-semibold">🧵 Story Montage (${(clip.segments || []).length} Beats)</span>` : ''}
                                         </div>
                                     </div>
                                     <div class="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-3.5 py-1.5 rounded-lg font-mono text-xs text-center flex items-center gap-2">
@@ -1226,6 +1234,7 @@ async function publishTikTokWithMode(videoPath, index) {
                         formData.append('word_karaoke', safeCheck('wordKaraoke', true));
                         formData.append('bgm_ducking', safeCheck('bgmDucking', false));
                         formData.append('layout_mode', safeVal('layoutMode', 'single'));
+                        formData.append('clip_mode', safeVal('clipMode', 'single'));
                         formData.append('webhook_url', safeVal('webhookUrl', ''));
                         formData.append('gemini_api_key', safeVal('geminiApiKey', ''));
                         formData.append('target_keyword', safeVal('target_keyword', ''));
@@ -1262,6 +1271,7 @@ async function publishTikTokWithMode(videoPath, index) {
                                 word_karaoke: safeCheck('wordKaraoke', true),
                                 bgm_ducking: safeCheck('bgmDucking', false),
                                 layout_mode: safeVal('layoutMode', 'single'),
+                                clip_mode: safeVal('clipMode', 'single'),
                                 webhook_url: safeVal('webhookUrl', ''),
                                 gemini_api_key: safeVal('geminiApiKey', ''),
                                 target_keyword: safeVal('target_keyword', ''),

@@ -2,6 +2,17 @@
 
 Semua perubahan yang signifikan pada proyek AutoClipWeb dari Fase 1 hingga saat ini.
 
+## [3.2.0] - AI Multi-Cut Story Montage Upgrade (2026-08-27)
+
+### 🧵 AI Story Montage & Multi-Cut Narrative Engine
+- **3-Beat Narrative Arc**: AI Gemini 3.7 Flash dapat mengekstrak dan merangkum 2–3 momen terpisah (Hook ➔ Proof/Body ➔ Punchline) dari bagian video yang berbeda menjadi 1 cerita utuh berdurasi 25–45 detik.
+- **Multi-Cam Scale Alternation**: FFmpeg otomatis merender pergantian skala/framing (1.0x ➔ 1.08x ➔ 1.0x) pada titik sambungan untuk menciptakan ilusi editan multi-kamera studio profesional.
+- **Unified Subtitle Timeline Normalization**: Engine subtitle Whisper memetakan ulang timestamp kata-per-kata ke satu garis waktu kontinu (00:00 ➔ Total Duration) sehingga karaoke dan animasi hook tetap sinkron 100% tanpa jeda.
+- **Zero Audio Pop/Clicks**: Sambungan audio multi-segmen digabungkan dengan micro-crossfade dan dilapisi BGM ducking berkesinambungan sebagai lem akustik.
+- **Pilihan Mode di UI**: User dapat memilih antara `🎯 Single Continuous Clip` (mode standar 1 momen) atau `🧵 Story Montage` (mode rangkuman 2-3 momen).
+
+---
+
 ## [3.1.0] - Viral Retention Upgrade (2026-08-24)
 
 ### 🎯 Pacing Durasi AI (Micro-Story Engine)

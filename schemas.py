@@ -20,6 +20,7 @@ class ClipRequest(BaseModel):
     word_karaoke: bool = False
     bgm_ducking: bool = False
     layout_mode: str = "auto"
+    clip_mode: Optional[str] = "single"  # "single" (1 continuous moment) or "montage" (3-beat narrative story)
     watermark_position: Optional[str] = "top_right"
     watermark_path: Optional[str] = ""
     enable_sfx: Optional[bool] = True
@@ -60,6 +61,7 @@ class VideoJobDetail(BaseModel):
     word_karaoke: Optional[bool]
     bgm_ducking: Optional[bool]
     layout_mode: Optional[str]
+    clip_mode: Optional[str] = "single"
     watermark_path: Optional[str]
     watermark_position: Optional[str]
     custom_font_path: Optional[str]
@@ -74,10 +76,15 @@ class VideoJobDetail(BaseModel):
 
     model_config = {"from_attributes": True}
 
-class ClipAnalysis(BaseModel):
-    id: str = Field(description="Unique ID for this clip, e.g. clip_1")
+class ClipSegment(BaseModel):
     start_time: str = Field(description="Start time in MM:SS")
     end_time: str = Field(description="End time in MM:SS")
+    role: Optional[str] = Field(default="body", description="Role of the segment: 'hook', 'explanation', or 'punchline'")
+
+class ClipAnalysis(BaseModel):
+    id: str = Field(description="Unique ID for this clip, e.g. clip_1")
+    start_time: str = Field(description="Overall Start time or first segment start time in MM:SS")
+    end_time: str = Field(description="Overall End time or last segment end time in MM:SS")
     viral_score: int = Field(description="Score from 1-100")
     viral_reasoning: str = Field(default="", description="Detailed 2-3 sentence AI analysis breakdown explaining why this clip is viral (e.g., retention hooks, provocative question, high emotional value)")
     hook_title: str = Field(default="", description="Short 3-6 word viral header title to be displayed on top of the clip, e.g. RAHASIA MOBIL LISTRIK CHINA! 🔥")
@@ -92,5 +99,8 @@ class ClipAnalysis(BaseModel):
     tiktok_caption: str = Field(default="", description="Platform-tailored TikTok caption with viral hook, emojis, and trending hashtags e.g. #fyp #foryoupage")
     reels_caption: str = Field(default="", description="Platform-tailored Instagram Reels caption with aesthetic storytelling tone and hashtags e.g. #reels #explore")
     shorts_caption: str = Field(default="", description="Platform-tailored YouTube Shorts title caption with punchy tag format and hashtags e.g. #shorts #trending")
+    is_montage: Optional[bool] = Field(default=False, description="True if clip is a multi-segment story montage")
+    segments: Optional[List[ClipSegment]] = Field(default=None, description="Optional list of non-contiguous story segments when in montage mode")
+
 class GeminiAnalysisSchema(BaseModel):
     clips: List[ClipAnalysis] = Field(description="List of extracted viral clips")

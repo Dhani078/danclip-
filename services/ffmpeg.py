@@ -233,144 +233,181 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
     except Exception:
         duration = "60"
 
-    # Step: YuNet Face & Scene Detection (Multi-Keyframe Sampling)
-    face_info = await asyncio.to_thread(detect_faces_and_recommend_layout, input_path, float(t1), duration_val)
-    print(f"[FFmpeg Engine] Multi-Keyframe Scene & Face Analysis: {face_info}")
-    
-    # Determine split screen / gaming mode
-    if layout_mode in ["gaming", "gaming_header", "gaming_overlay"] or crop_style in ["gaming", "gaming_header", "gaming_overlay"]:
-        is_gaming_mode = True
-        gaming_variant = crop_style if crop_style in ["gaming_header", "gaming_overlay"] else (
-            layout_mode if layout_mode in ["gaming_header", "gaming_overlay"] else "gaming_header"
-        )
-        should_split = False
-    elif layout_mode == "split":
-        is_gaming_mode = False
-        gaming_variant = "gaming_header"
-        should_split = True
-    elif layout_mode == "single":
-        is_gaming_mode = False
-        gaming_variant = "gaming_header"
-        should_split = False
-    else: # "auto" mode
-        is_gaming_mode = face_info.get("is_gaming", False)
-        gaming_variant = "gaming_header"
-        should_split = face_info.get("is_split_screen", False) if not is_gaming_mode else False
+    # Multi-Cut Story Montage detection
+    segments = settings.get("segments", None)
+    valid_segments = []
+    if segments and isinstance(segments, list) and len(segments) >= 2:
+        montage_duration = 0.0
+        for seg in segments:
+            s_val = parse_time(seg.get("start_time", 0.0) if isinstance(seg, dict) else getattr(seg, "start_time", 0.0))
+            e_val = parse_time(seg.get("end_time", 0.0) if isinstance(seg, dict) else getattr(seg, "end_time", 0.0))
+            dur_k = max(0.5, e_val - s_val)
+            valid_segments.append((s_val, e_val, dur_k))
+            montage_duration += dur_k
+        if len(valid_segments) >= 2:
+            duration_val = montage_duration
+            duration = str(duration_val)
+
+    is_montage_mode = len(valid_segments) >= 2
+
+    if is_montage_mode:
+        # Multi-Segment Story Montage: Build Multi-Cam alternating zoom filter graph
+        seg_filters = []
+        concat_inputs = []
+        for idx, (s_val, e_val, dur_k) in enumerate(valid_segments):
+            if idx % 2 == 1:
+                # 1.08x punch-in zoom for middle beat
+                zoom_w = int(tw * 1.08)
+                zoom_h = int(th * 1.08)
+                v_scale = f"scale={zoom_w}:{zoom_h}:force_original_aspect_ratio=increase,crop={tw}:{th}"
+            else:
+                v_scale = f"scale={tw}:{th}:force_original_aspect_ratio=increase,crop={tw}:{th}"
+            seg_filters.append(f"[0:v]trim=start={s_val:.2f}:end={e_val:.2f},setpts=PTS-STARTPTS,{v_scale}[v_seg_{idx}]")
+            seg_filters.append(f"[0:a]atrim=start={s_val:.2f}:end={e_val:.2f},asetpts=PTS-STARTPTS[a_seg_{idx}]")
+            concat_inputs.append(f"[v_seg_{idx}][a_seg_{idx}]")
         
-    # Auto-adapt to blur_pad ONLY if zero faces found by YuNet across frames, or user explicitly chose blur_pad
-    if crop_style == "blur_pad" or (crop_style == "center_crop" and face_info["use_blur_pad"]):
-        effective_crop_style = "blur_pad"
-    elif is_gaming_mode:
-        effective_crop_style = gaming_variant
+        concat_str = "".join(concat_inputs) + f"concat=n={len(valid_segments)}:v=1:a=1[v][a_concat]"
+        filter_complex = ";".join(seg_filters) + ";" + concat_str
+        ema_video_path = None
     else:
-        effective_crop_style = "center_crop"
+        # Step: YuNet Face & Scene Detection (Multi-Keyframe Sampling)
+        face_info = await asyncio.to_thread(detect_faces_and_recommend_layout, input_path, float(t1), duration_val)
+        print(f"[FFmpeg Engine] Multi-Keyframe Scene & Face Analysis: {face_info}")
         
-    # TRUE AUTO REFRAME TRACKING (EMA)
-    ema_video_path = None
-    use_ema_tracking = (effective_crop_style == "center_crop" and auto_reframe and not (should_split and face_info["num_faces"] >= 2))
-    
-    if use_ema_tracking:
-        from services.face_tracker import apply_ema_tracking_to_video
-        temp_ema = os.path.join(os.path.dirname(output_path), f"temp_ema_{os.path.basename(output_path)}")
-        success = await apply_ema_tracking_to_video(input_path, temp_ema, float(t1), duration_val, tw, th)
-        if success and os.path.exists(temp_ema):
-            ema_video_path = temp_ema
-    
-    if effective_crop_style in ["gaming", "gaming_header"]:
-        # Layout Reference (Mednasah Style): Top Streamer Facecam (840px) + Bottom Gameplay (1080px) = 1920px Full Canvas (Zero Gap)
-        ratio_x = float(face_info["face_center_x_ratio"]) if face_info.get("face_center_x_ratio") is not None else 0.85
-        ratio_y = float(face_info["face_center_y_ratio"]) if face_info.get("face_center_y_ratio") is not None else 0.80
-        fw_ratio = float(face_info.get("face_width_ratio", 0.15))
-        
-        # Streamer Facecam Crop Box (Aspect ratio 1080x840 = 1.2857)
-        tight_crop_w_expr = rf"min(in_w\, max(in_w * 0.35\, in_w * {fw_ratio:.3f} * 2.8))"
-        tight_crop_h_expr = rf"(({tight_crop_w_expr}) * 840 / 1080)"
-        
-        top_x_expr = rf"max(0\, min(in_w - ({tight_crop_w_expr})\, in_w*{ratio_x:.3f} - ({tight_crop_w_expr})/2))"
-        top_y_expr = rf"max(0\, min(in_h - ({tight_crop_h_expr})\, in_h*{ratio_y:.3f} - ({tight_crop_h_expr})/2))"
-        
-        cam_w = tw   # 1080px
-        cam_h = 840  # 840px height for Top Streamer Facecam
-        game_w = tw  # 1080px
-        game_h = 1080# 1080px height for Bottom Gameplay
-        
-        cam_y = 0    # Streamer Facecam at TOP (0 to 840px)
-        game_y = 840 # Gameplay at BOTTOM (840 to 1920px)
-        
-        filter_complex = (
-            f"[0:v]split=3[bg_raw][cam_raw][game_raw];"
-            f"[bg_raw]scale={tw}:{th}:force_original_aspect_ratio=increase,crop={tw}:{th},boxblur=40:10,drawbox=x=0:y=0:w=iw:h=ih:color=black@0.5:t=fill[bg];"
-            rf"[cam_raw]crop={tight_crop_w_expr}:{tight_crop_h_expr}:{top_x_expr}:{top_y_expr},scale={tw}:{cam_h}[cam];"
-            f"[game_raw]crop=in_w*0.82:in_h:0:0,scale={game_w}:{game_h}:force_original_aspect_ratio=increase,crop={game_w}:{game_h}[game];"
-            f"[bg][cam]overlay=0:{cam_y}[bg_cam];"
-            f"[bg_cam][game]overlay=0:{game_y}[v]"
-        )
-    elif effective_crop_style == "gaming_overlay":
-        # Layout 2: Smart Gaming Floating Box (Large Center Gameplay + Floating Balanced Facecam Box)
-        ratio_x = float(face_info["face_center_x_ratio"]) if face_info.get("face_center_x_ratio") is not None else 0.85
-        ratio_y = float(face_info["face_center_y_ratio"]) if face_info.get("face_center_y_ratio") is not None else 0.80
-        fw_ratio = float(face_info.get("face_width_ratio", 0.15))
-        
-        tight_crop_w_expr = rf"min(in_w\, max(in_w * 0.24\, in_w * {fw_ratio:.3f} * 2.4))"
-        tight_crop_h_expr = tight_crop_w_expr
-        
-        top_x_expr = rf"max(0\, min(in_w - ({tight_crop_w_expr})\, in_w*{ratio_x:.3f} - ({tight_crop_w_expr})/2))"
-        top_y_expr = rf"max(0\, min(in_h - ({tight_crop_h_expr})\, in_h*{ratio_y:.3f} - ({tight_crop_h_expr})/2))"
-        
-        game_w = tw # 1080px
-        game_h = int(tw * 9 / 16) # 607px
-        facebox_size = 380
-        
-        filter_complex = (
-            f"[0:v]split=3[bg_raw][cam_raw][game_raw];"
-            f"[bg_raw]scale={tw}:{th}:force_original_aspect_ratio=increase,crop={tw}:{th},boxblur=40:10,drawbox=x=0:y=0:w=iw:h=ih:color=black@0.5:t=fill[bg];"
-            f"[game_raw]scale={game_w}:{game_h}:force_original_aspect_ratio=decrease[game];"
-            rf"[cam_raw]crop={tight_crop_w_expr}:{tight_crop_h_expr}:{top_x_expr}:{top_y_expr},"
-            f"scale={facebox_size}:{facebox_size},"
-            f"drawbox=x=0:y=0:w=iw:h=ih:color=white@0.6:t=4[cam];"
-            f"[bg][game]overlay=0:260[bg_game];"
-            f"[bg_game][cam]overlay=660:920[v]"
-        )
-    elif effective_crop_style == "center_crop":
-        if auto_reframe and should_split and face_info["num_faces"] >= 2:
-            # Opus Clip Smart Dual-Speaker Podcast Split Screen
-            left_x = face_info.get("face_left_x_ratio", 0.28)
-            right_x = face_info.get("face_right_x_ratio", 0.72)
+        # Determine split screen / gaming mode
+        if layout_mode in ["gaming", "gaming_header", "gaming_overlay"] or crop_style in ["gaming", "gaming_header", "gaming_overlay"]:
+            is_gaming_mode = True
+            gaming_variant = crop_style if crop_style in ["gaming_header", "gaming_overlay"] else (
+                layout_mode if layout_mode in ["gaming_header", "gaming_overlay"] else "gaming_header"
+            )
+            should_split = False
+        elif layout_mode == "split":
+            is_gaming_mode = False
+            gaming_variant = "gaming_header"
+            should_split = True
+        elif layout_mode == "single":
+            is_gaming_mode = False
+            gaming_variant = "gaming_header"
+            should_split = False
+        else: # "auto" mode
+            is_gaming_mode = face_info.get("is_gaming", False)
+            gaming_variant = "gaming_header"
+            should_split = face_info.get("is_split_screen", False) if not is_gaming_mode else False
             
-            # Ultra Robust Scale Filter for half-height split screen (width >= tw, height >= th//2)
-            scale_split = rf"scale=w='max({tw}\, iw*{th//2}/ih)':h='max({th//2}\, ih*{tw}/iw)'"
+        # Auto-adapt to blur_pad ONLY if zero faces found by YuNet across frames, or user explicitly chose blur_pad
+        if crop_style == "blur_pad" or (crop_style == "center_crop" and face_info["use_blur_pad"]):
+            effective_crop_style = "blur_pad"
+        elif is_gaming_mode:
+            effective_crop_style = gaming_variant
+        else:
+            effective_crop_style = "center_crop"
             
-            # Crop expressions for Left (Top Half) and Right (Bottom Half) speakers
-            top_x_expr = rf"max(0\, min(in_w-{tw}\, in_w*{left_x:.3f} - {tw}/2))"
-            bottom_x_expr = rf"max(0\, min(in_w-{tw}\, in_w*{right_x:.3f} - {tw}/2))"
+        # TRUE AUTO REFRAME TRACKING (EMA)
+        ema_video_path = None
+        use_ema_tracking = (effective_crop_style == "center_crop" and auto_reframe and not (should_split and face_info["num_faces"] >= 2))
+        
+        if use_ema_tracking:
+            from services.face_tracker import apply_ema_tracking_to_video
+            temp_ema = os.path.join(os.path.dirname(output_path), f"temp_ema_{os.path.basename(output_path)}")
+            success = await apply_ema_tracking_to_video(input_path, temp_ema, float(t1), duration_val, tw, th)
+            if success and os.path.exists(temp_ema):
+                ema_video_path = temp_ema
+        
+        if effective_crop_style in ["gaming", "gaming_header"]:
+            # Layout Reference (Mednasah Style): Top Streamer Facecam (840px) + Bottom Gameplay (1080px) = 1920px Full Canvas (Zero Gap)
+            ratio_x = float(face_info["face_center_x_ratio"]) if face_info.get("face_center_x_ratio") is not None else 0.85
+            ratio_y = float(face_info["face_center_y_ratio"]) if face_info.get("face_center_y_ratio") is not None else 0.80
+            fw_ratio = float(face_info.get("face_width_ratio", 0.15))
+            
+            # Streamer Facecam Crop Box (Aspect ratio 1080x840 = 1.2857)
+            tight_crop_w_expr = rf"min(in_w\, max(in_w * 0.35\, in_w * {fw_ratio:.3f} * 2.8))"
+            tight_crop_h_expr = rf"(({tight_crop_w_expr}) * 840 / 1080)"
+            
+            top_x_expr = rf"max(0\, min(in_w - ({tight_crop_w_expr})\, in_w*{ratio_x:.3f} - ({tight_crop_w_expr})/2))"
+            top_y_expr = rf"max(0\, min(in_h - ({tight_crop_h_expr})\, in_h*{ratio_y:.3f} - ({tight_crop_h_expr})/2))"
+            
+            cam_w = tw   # 1080px
+            cam_h = 840  # 840px height for Top Streamer Facecam
+            game_w = tw  # 1080px
+            game_h = 1080# 1080px height for Bottom Gameplay
+            
+            cam_y = 0    # Streamer Facecam at TOP (0 to 840px)
+            game_y = 840 # Gameplay at BOTTOM (840 to 1920px)
             
             filter_complex = (
-                f"[0:v]split=2[top_raw][bottom_raw];"
-                rf"[top_raw]{scale_split},crop={tw}:{th//2}:{top_x_expr}:(in_h-{th//2})/2[top];"
-                rf"[bottom_raw]{scale_split},crop={tw}:{th//2}:{bottom_x_expr}:(in_h-{th//2})/2[bottom];"
-                f"[top][bottom]vstack[v]"
+                f"[0:v]split=3[bg_raw][cam_raw][game_raw];"
+                f"[bg_raw]scale={tw}:{th}:force_original_aspect_ratio=increase,crop={tw}:{th},boxblur=40:10,drawbox=x=0:y=0:w=iw:h=ih:color=black@0.5:t=fill[bg];"
+                rf"[cam_raw]crop={tight_crop_w_expr}:{tight_crop_h_expr}:{top_x_expr}:{top_y_expr},scale={tw}:{cam_h}[cam];"
+                f"[game_raw]crop=in_w*0.82:in_h:0:0,scale={game_w}:{game_h}:force_original_aspect_ratio=increase,crop={game_w}:{game_h}[game];"
+                f"[bg][cam]overlay=0:{cam_y}[bg_cam];"
+                f"[bg_cam][game]overlay=0:{game_y}[v]"
             )
-        elif auto_reframe:
-            if ema_video_path:
-                # Pre-cropped by OpenCV EMA Tracker! Just pass it through.
-                filter_complex = f"[0:v]null[v]"
+        elif effective_crop_style == "gaming_overlay":
+            # Layout 2: Smart Gaming Floating Box (Large Center Gameplay + Floating Balanced Facecam Box)
+            ratio_x = float(face_info["face_center_x_ratio"]) if face_info.get("face_center_x_ratio") is not None else 0.85
+            ratio_y = float(face_info["face_center_y_ratio"]) if face_info.get("face_center_y_ratio") is not None else 0.80
+            fw_ratio = float(face_info.get("face_width_ratio", 0.15))
+            
+            tight_crop_w_expr = rf"min(in_w\, max(in_w * 0.24\, in_w * {fw_ratio:.3f} * 2.4))"
+            tight_crop_h_expr = tight_crop_w_expr
+            
+            top_x_expr = rf"max(0\, min(in_w - ({tight_crop_w_expr})\, in_w*{ratio_x:.3f} - ({tight_crop_w_expr})/2))"
+            top_y_expr = rf"max(0\, min(in_h - ({tight_crop_h_expr})\, in_h*{ratio_y:.3f} - ({tight_crop_h_expr})/2))"
+            
+            game_w = tw # 1080px
+            game_h = int(tw * 9 / 16) # 607px
+            facebox_size = 380
+            
+            filter_complex = (
+                f"[0:v]split=3[bg_raw][cam_raw][game_raw];"
+                f"[bg_raw]scale={tw}:{th}:force_original_aspect_ratio=increase,crop={tw}:{th},boxblur=40:10,drawbox=x=0:y=0:w=iw:h=ih:color=black@0.5:t=fill[bg];"
+                f"[game_raw]scale={game_w}:{game_h}:force_original_aspect_ratio=decrease[game];"
+                rf"[cam_raw]crop={tight_crop_w_expr}:{tight_crop_h_expr}:{top_x_expr}:{top_y_expr},"
+                f"scale={facebox_size}:{facebox_size},"
+                f"drawbox=x=0:y=0:w=iw:h=ih:color=white@0.6:t=4[cam];"
+                f"[bg][game]overlay=0:260[bg_game];"
+                f"[bg_game][cam]overlay=660:920[v]"
+            )
+        elif effective_crop_style == "center_crop":
+            if auto_reframe and should_split and face_info["num_faces"] >= 2:
+                # Opus Clip Smart Dual-Speaker Podcast Split Screen
+                left_x = face_info.get("face_left_x_ratio", 0.28)
+                right_x = face_info.get("face_right_x_ratio", 0.72)
+                
+                # Ultra Robust Scale Filter for half-height split screen (width >= tw, height >= th//2)
+                scale_split = rf"scale=w='max({tw}\, iw*{th//2}/ih)':h='max({th//2}\, ih*{tw}/iw)'"
+                
+                # Crop expressions for Left (Top Half) and Right (Bottom Half) speakers
+                top_x_expr = rf"max(0\, min(in_w-{tw}\, in_w*{left_x:.3f} - {tw}/2))"
+                bottom_x_expr = rf"max(0\, min(in_w-{tw}\, in_w*{right_x:.3f} - {tw}/2))"
+                
+                filter_complex = (
+                    f"[0:v]split=2[top_raw][bottom_raw];"
+                    rf"[top_raw]{scale_split},crop={tw}:{th//2}:{top_x_expr}:(in_h-{th//2})/2[top];"
+                    rf"[bottom_raw]{scale_split},crop={tw}:{th//2}:{bottom_x_expr}:(in_h-{th//2})/2[bottom];"
+                    f"[top][bottom]vstack[v]"
+                )
+            elif auto_reframe:
+                if ema_video_path:
+                    # Pre-cropped by OpenCV EMA Tracker! Just pass it through.
+                    filter_complex = f"[0:v]null[v]"
+                else:
+                    # Dynamic Single Face Tracking crop (X and Y Rule of Thirds)
+                    ratio_x = float(face_info["face_center_x_ratio"]) if face_info.get("face_center_x_ratio") is not None else 0.5
+                    ratio_y = float(face_info["face_center_y_ratio"]) if face_info.get("face_center_y_ratio") is not None else 0.35
+                    
+                    x_crop_expr = rf"max(0\, min(in_w-{tw}\, in_w*{ratio_x:.3f} - {tw}/2))"
+                    y_crop_expr = rf"max(0\, min(in_h-{th}\, in_h*{ratio_y:.3f} - {th}*0.28))"
+                    
+                    filter_complex = f"[0:v]scale=-1:{th}:force_original_aspect_ratio=increase,crop={tw}:{th}:{x_crop_expr}:{y_crop_expr}[v]"
             else:
-                # Dynamic Single Face Tracking crop (X and Y Rule of Thirds)
-                ratio_x = float(face_info["face_center_x_ratio"]) if face_info.get("face_center_x_ratio") is not None else 0.5
-                ratio_y = float(face_info["face_center_y_ratio"]) if face_info.get("face_center_y_ratio") is not None else 0.35
-                
-                x_crop_expr = rf"max(0\, min(in_w-{tw}\, in_w*{ratio_x:.3f} - {tw}/2))"
-                y_crop_expr = rf"max(0\, min(in_h-{th}\, in_h*{ratio_y:.3f} - {th}*0.28))"
-                
-                filter_complex = f"[0:v]scale=-1:{th}:force_original_aspect_ratio=increase,crop={tw}:{th}:{x_crop_expr}:{y_crop_expr}[v]"
-        else:
-            filter_complex = f"[0:v]scale={tw}:{th}:force_original_aspect_ratio=increase,crop={tw}:{th}[v]"
-    else: # blur_pad
-        filter_complex = (
-            f"[0:v]scale={tw}:{th}:force_original_aspect_ratio=increase,crop={tw}:{th},boxblur=40:10,drawbox=x=0:y=0:w=iw:h=ih:color=black@0.6:t=fill[bg];"
-            f"[0:v]scale={tw}:{th}:force_original_aspect_ratio=decrease[fg];"
-            f"[bg][fg]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2[v]"
-        )
+                filter_complex = f"[0:v]scale={tw}:{th}:force_original_aspect_ratio=increase,crop={tw}:{th}[v]"
+        else: # blur_pad
+            filter_complex = (
+                f"[0:v]scale={tw}:{th}:force_original_aspect_ratio=increase,crop={tw}:{th},boxblur=40:10,drawbox=x=0:y=0:w=iw:h=ih:color=black@0.6:t=fill[bg];"
+                f"[0:v]scale={tw}:{th}:force_original_aspect_ratio=decrease[fg];"
+                f"[bg][fg]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2[v]"
+            )
     
     watermark_path = settings.get("watermark_path", None)
     watermark_pos = settings.get("watermark_position", "top_right")
@@ -380,8 +417,10 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
     input_count = 1
     extra_inputs = []
     
-    # Original video for audio if EMA was used
-    if ema_video_path:
+    # Original video for audio if EMA or montage was used
+    if is_montage_mode:
+        a_src = "[a_concat]"
+    elif ema_video_path:
         audio_input_idx = input_count
         extra_inputs.extend(["-ss", str(t1), "-i", input_path])
         input_count += 1
@@ -485,7 +524,9 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
         filter_complex += audio_filter
 
     cmd = [FFMPEG_CMD, "-y"]
-    if ema_video_path:
+    if is_montage_mode:
+        cmd.extend(["-i", input_path])
+    elif ema_video_path:
         cmd.extend(["-i", ema_video_path])
     else:
         cmd.extend(["-ss", str(t1), "-i", input_path])
@@ -541,7 +582,9 @@ async def render_viral_clip(input_path: str, output_path: str, start_time: str, 
             
             # Fallback to libx264
             cmd_fallback = [FFMPEG_CMD, "-y"]
-            if ema_video_path:
+            if is_montage_mode:
+                cmd_fallback.extend(["-i", input_path])
+            elif ema_video_path:
                 cmd_fallback.extend(["-i", ema_video_path])
             else:
                 cmd_fallback.extend(["-ss", str(t1), "-i", input_path])

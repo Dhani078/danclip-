@@ -281,9 +281,10 @@ def generate_ass_from_words(
     hook_title: str = "", 
     subtitle_preset: str = "hormozi", 
     subtitle_position: str = "bottom",
-    sub_opacity: int = 100
+    sub_opacity: int = 100,
+    segments: list = None
 ) -> str:
-    """Generates an ASS subtitle string for a specific clip duration using pre-transcribed words."""
+    """Generates an ASS subtitle string for a specific clip duration using pre-transcribed words (supports multi-cut montage re-indexing)."""
     preset = (subtitle_preset or "hormozi").lower()
     
     margin_v = 300
@@ -369,11 +370,43 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     use_multicolor = (preset in ["mrbeast", "multicolor"])
     chunk_size = 2 if (word_karaoke or preset in ["hormozi", "mrbeast", "tiktok_neon"]) else 5
     
-    # Filter words strictly in the clip's time range
+    # Filter words strictly in the clip's time range or map multiple non-linear segments
     clip_words = []
-    for w in words:
-        if w["end"] > clip_start and w["start"] < clip_end:
-            clip_words.append(w)
+    if segments and len(segments) > 0:
+        def parse_sec(val):
+            if isinstance(val, (int, float)): return float(val)
+            parts = str(val).strip().split(':')
+            try:
+                if len(parts) == 2: return float(parts[0]) * 60.0 + float(parts[1])
+                if len(parts) == 3: return float(parts[0]) * 3600.0 + float(parts[1]) * 60.0 + float(parts[2])
+                return float(val)
+            except:
+                return 0.0
+
+        current_offset = 0.0
+        for seg in segments:
+            s_start = parse_sec(seg.get("start_time", 0.0) if isinstance(seg, dict) else getattr(seg, "start_time", 0.0))
+            s_end = parse_sec(seg.get("end_time", 0.0) if isinstance(seg, dict) else getattr(seg, "end_time", 0.0))
+            seg_dur = max(0.0, s_end - s_start)
+            if seg_dur <= 0: continue
+
+            for w in words:
+                w_start = float(w["start"])
+                w_end = float(w["end"])
+                if w_end > s_start and w_start < s_end:
+                    remapped_start = current_offset + max(0.0, w_start - s_start)
+                    remapped_end = current_offset + min(seg_dur, w_end - s_start)
+                    clip_words.append({
+                        "start": remapped_start,
+                        "end": max(remapped_start + 0.1, remapped_end),
+                        "word": w["word"]
+                    })
+            current_offset += seg_dur
+        clip_start = 0.0
+    else:
+        for w in words:
+            if w["end"] > clip_start and w["start"] < clip_end:
+                clip_words.append(w)
             
     for i in range(0, len(clip_words), chunk_size):
         chunk = clip_words[i:i + chunk_size]

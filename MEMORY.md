@@ -29,24 +29,23 @@ Urutan prioritas model yang digunakan di `services/gemini.py`:
 
 ---
 
-## 🎬 Aturan Pemotongan Klip Viral (Complete Micro-Story)
+## 🎬 Aturan Pemotongan Klip Viral (Single Micro-Story & Story Montage)
 
-### Durasi Optimal
-- **Target utama**: 30 – 45 detik
-- **Rentang yang diizinkan**: 25 – 60 detik
-- **Dilarang**: < 20 detik (terlalu pendek, memotong gagasan) atau > 90 detik (terlalu panjang, penonton swipe)
+### 1. Mode Standar (Single Continuous Clip)
+- **Target utama**: 30 – 45 detik (rentang: 25 – 60 detik)
+- **Struktur**: 1 HOOK ➔ 1 BODY ➔ 1 PUNCHLINE dalam 1 rentang waktu utuh.
+- `start_time` WAJIB dimulai dari konsonan pertama kata pembuka topik.
+- `end_time` WAJIB berakhir tepat setelah titik intonasi kesimpulan.
 
-### Struktur Wajib Setiap Klip
-```
-1 HOOK   → Pemicu rasa penasaran di 3 detik pertama
-1 BODY   → Inti argumen / penjelasan singkat padat
-1 PUNCHLINE → Kesimpulan tuntas yang memuaskan penonton
-```
-
-### Aturan Pemotongan
-- `start_time` WAJIB dimulai dari **konsonan pertama kata pembuka topik**
-- `end_time` WAJIB berakhir tepat setelah **titik intonasi kesimpulan** pembicara
-- DILARANG memulai di tengah kalimat atau mengakhiri di tengah argumen
+### 2. Mode Baru: Story Montage (3-Beat Multi-Cut Narrative)
+- **Fungsi**: Menggabungkan 2-3 momen terpisah dari video yang saling berkesinambungan secara logis.
+- **Struktur 3-Beat Arc**:
+  - *Beat 1 (Hook / Premis)*: 5–8 detik dari awal video (memicu rasa penasaran).
+  - *Beat 2 (Explanation / Proof)*: 12–20 detik dari tengah video (argumen inti / data).
+  - *Beat 3 (Punchline / Conclusion)*: 6–10 detik dari akhir video (solusi tuntas).
+- **Multi-Cam Scale Switch**: FFmpeg otomatis merender zoom bergantian (1.0x ➔ 1.08x ➔ 1.0x) untuk efek pergantian sudut kamera studio.
+- **Unified Timeline Normalization**: Whisper memetakan ulang timestamp kata-per-kata ke satu garis waktu kontinu 00:00 tanpa ada jeda subtitle.
+- **Audio Acrossfade & BGM Bedding**: Audio disambung dengan 80ms crossfade dan dilapisi BGM berkesinambungan sebagai lem akustik.
 
 ---
 

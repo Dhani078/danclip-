@@ -434,7 +434,13 @@ async def process_video_pipeline(job_id: str):
                 transcript_text = "\n".join(transcript_lines)
                 
                 from services.gemini import analyze_transcript_chunks
-                analysis = await run_with_backoff(lambda: analyze_transcript_chunks(transcript_text, job.custom_prompt, job.clip_count, custom_api_key=getattr(job, "gemini_api_key", "") or ""))
+                analysis = await run_with_backoff(lambda: analyze_transcript_chunks(
+                    transcript_text, 
+                    job.custom_prompt, 
+                    job.clip_count, 
+                    custom_api_key=getattr(job, "gemini_api_key", "") or "",
+                    clip_mode=getattr(job, "clip_mode", "single") or "single"
+                ))
             else:
                 job.current_step_message = "Extracting audio for AI analysis (saving tokens)..."
                 await session.commit()
@@ -457,7 +463,8 @@ async def process_video_pipeline(job_id: str):
                     custom_api_key=getattr(job, "gemini_api_key", "") or "",
                     target_keyword=getattr(job, "target_keyword", "") or "",
                     target_start_time=getattr(job, "target_start_time", "") or "",
-                    target_end_time=getattr(job, "target_end_time", "") or ""
+                    target_end_time=getattr(job, "target_end_time", "") or "",
+                    clip_mode=getattr(job, "clip_mode", "single") or "single"
                 ))
                 
                 if os.path.exists(audio_path):
@@ -494,12 +501,18 @@ async def process_video_pipeline(job_id: str):
                 start_sec = float(parse_time(clip.start_time))
                 end_sec = float(parse_time(clip.end_time))
                 
+                clip_segments = getattr(clip, "segments", None)
+                seg_list = None
+                if clip_segments and hasattr(clip_segments, '__iter__'):
+                    seg_list = [s.model_dump() if hasattr(s, 'model_dump') else (s.dict() if hasattr(s, 'dict') else s) for s in clip_segments]
+
                 whisper_srt = generate_ass_from_words(
                     full_words, start_sec, end_sec,
                     sub_size=job.subtitle_size, sub_color=job.subtitle_color, word_karaoke=job.word_karaoke,
                     hook_title=hook_title_text, subtitle_preset=getattr(job, "subtitle_preset", "hormozi"),
                     subtitle_position=getattr(job, "subtitle_position", "bottom"),
-                    sub_opacity=getattr(job, "subtitle_opacity", 100)
+                    sub_opacity=getattr(job, "subtitle_opacity", 100),
+                    segments=seg_list
                 )
                 
                 cover_export_path = os.path.join(settings.STORAGE_DIR, "exports", f"{job_id}_{clip.id}_cover.jpg")
@@ -553,7 +566,8 @@ async def process_video_pipeline(job_id: str):
                     "layout_mode": getattr(job, "layout_mode", "auto"),
                     "layout_type": getattr(clip, "layout_type", "single"),
                     "speaker_focus": getattr(clip, "speaker_focus", "center"),
-                    "has_broll": getattr(clip, "has_broll", False)
+                    "has_broll": getattr(clip, "has_broll", False),
+                    "segments": seg_list
                 }
                 await render_viral_clip(raw_video_path, export_path, clip.start_time, clip.end_time, subtitle_path, job_settings, burn_subtitles=getattr(job, "enable_subtitles", False))
                 
@@ -593,7 +607,9 @@ async def process_video_pipeline(job_id: str):
                         "shorts_hashtags": c.get("shorts_hashtags", []),
                         "tiktok_caption": c.get("tiktok_caption", ""),
                         "reels_caption": c.get("reels_caption", ""),
-                        "shorts_caption": c.get("shorts_caption", "")
+                        "shorts_caption": c.get("shorts_caption", ""),
+                        "is_montage": getattr(clip, "is_montage", False),
+                        "segments": seg_list
                     }),
                     output_path=output_paths[idx] if idx < len(output_paths) else None,
                     status='COMPLETED'
@@ -668,6 +684,7 @@ async def create_clip(request: ClipRequest, background_tasks: BackgroundTasks, d
             word_karaoke=request.word_karaoke,
             bgm_ducking=request.bgm_ducking,
             layout_mode=request.layout_mode,
+            clip_mode=getattr(request, "clip_mode", "single") or "single",
             watermark_position=request.watermark_position,
             watermark_path=request.watermark_path,
             enable_sfx=request.enable_sfx,
@@ -707,6 +724,7 @@ async def upload_local_video(
     word_karaoke: bool = Form(False),
     bgm_ducking: bool = Form(False),
     layout_mode: str = Form("auto"),
+    clip_mode: str = Form("single"),
     watermark_position: str = Form("top_right"),
     watermark_path: str = Form(""),
     enable_sfx: bool = Form(True),
@@ -743,6 +761,7 @@ async def upload_local_video(
         word_karaoke=word_karaoke,
         bgm_ducking=bgm_ducking,
         layout_mode=layout_mode,
+        clip_mode=clip_mode,
         watermark_position=watermark_position,
         watermark_path=watermark_path,
         enable_sfx=enable_sfx,

@@ -57,6 +57,13 @@ class VideoJob(Base):
             except Exception:
                 hashtags = []
                 
+            meta = {}
+            if getattr(c, "platform_meta_json", None):
+                try:
+                    meta = json.loads(c.platform_meta_json)
+                except Exception:
+                    meta = {}
+
             c_list.append({
                 "id": c.id,
                 "start": c.start_sec,
@@ -68,6 +75,8 @@ class VideoJob(Base):
                 "hook_title": c.hook_title,
                 "caption": c.caption,
                 "hashtags": hashtags,
+                "is_montage": meta.get("is_montage", False),
+                "segments": meta.get("segments", None),
                 "output_path": c.output_path,
                 "thumbnail_path": c.thumbnail_path,
                 "status": c.status,
@@ -95,6 +104,7 @@ class VideoJob(Base):
     auto_reframe = Column(Boolean, default=False)
     word_karaoke = Column(Boolean, default=False)
     bgm_ducking = Column(Boolean, default=False)
+    clip_mode = Column(String(20), default="single")
     # Watermark, SFX, & Custom Font
     watermark_path = Column(String(255), nullable=True)
     watermark_position = Column(String(20), default="top_right")
